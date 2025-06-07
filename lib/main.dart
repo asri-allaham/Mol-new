@@ -1,5 +1,6 @@
 import 'package:MOLLILE/Dartpages/HomePage/Home_page.dart';
 import 'package:MOLLILE/Dartpages/HomePage/start_pages.dart';
+import 'package:MOLLILE/Dartpages/sighUpIn/login_state.dart';
 import 'package:MOLLILE/Dartpages/simple_functions/Language.dart';
 import 'package:MOLLILE/firebaseSeting/firebase_options.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -46,6 +47,7 @@ void main() async {
       child: MultiProvider(
         providers: [
           ChangeNotifierProvider(create: (_) => AppLanguageProvider()),
+          ChangeNotifierProvider(create: (_) => LoginState()),
         ],
         child: EasyLocalization(
           supportedLocales: const [

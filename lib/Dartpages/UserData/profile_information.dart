@@ -2,11 +2,13 @@ import 'package:MOLLILE/Dartpages/Communicate%20with%20investor/business%20owner
 import 'package:MOLLILE/Dartpages/HomePage/Home_page.dart';
 import 'package:MOLLILE/Dartpages/HomePage/ProjectAdd.dart';
 import 'package:MOLLILE/Dartpages/sighUpIn/LoginPage.dart';
+import 'package:MOLLILE/Dartpages/sighUpIn/login_state.dart';
 import 'package:MOLLILE/i18n/LanguageScreen.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:easy_localization/easy_localization.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_chat_ui/flutter_chat_ui.dart';
 // import 'package:flutter_phoenix/flutter_phoenix.dart';
 import 'package:provider/provider.dart';
 // import 'package:shared_preferences/shared_preferences.dart';
@@ -288,6 +290,17 @@ class _ProfileInformationState extends State<ProfileInformation> {
                   .push(MaterialPageRoute(builder: (_) => privacy())),
             ),
           ]),
+          ElevatedButton(
+            onPressed: () async {
+              await Provider.of<LoginState>(context, listen: false).logout();
+              Navigator.of(context).push(
+                  MaterialPageRoute(builder: (context) => const Homepage()));
+            },
+            child: Text(
+              "Logout",
+              style: TextStyle(color: Colors.red),
+            ),
+          )
         ],
       ),
     );

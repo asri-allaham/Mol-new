@@ -55,6 +55,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
       debugPrint("Error uploading image: $e");
       return null;
     }
+    return null;
   }
 
   Future<void> _handleRegistration() async {

@@ -1,7 +1,7 @@
 import 'package:MOLLILE/Dartpages/CustomWidget/buttom.dart';
 import 'package:MOLLILE/Dartpages/HomePage/Home_page.dart';
 import 'package:MOLLILE/Dartpages/sighUpIn/Registration.dart';
-import 'package:MOLLILE/Dartpages/simple_functions/login_state.dart';
+import 'package:MOLLILE/Dartpages/sighUpIn/login_state.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_sign_in/google_sign_in.dart';
@@ -140,7 +140,7 @@ class _LoginPageState extends State<LoginPage> {
               _buildInputLabel("Your Email"),
               _buildTextField(
                 controller: _emailController,
-                hintText: "asmaalqwaba@gmail.com",
+                hintText: "name@gmail.com",
                 hintColor: Color(0xff90AC9F),
               ),
               const SizedBox(height: 15),

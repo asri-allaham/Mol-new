@@ -1,11 +1,9 @@
 import 'package:MOLLILE/Dartpages/CustomWidget/SearchBox.dart';
 import 'package:MOLLILE/Dartpages/HomePage/ProjectAdd.dart';
 import 'package:MOLLILE/Dartpages/HomePage/viewItems.dart';
-import 'package:MOLLILE/Dartpages/HomePage/viewProject.dart';
 import 'package:MOLLILE/Dartpages/UserData/profile_information.dart';
 import 'package:MOLLILE/Dartpages/sighUpIn/LoginPage.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -117,8 +115,23 @@ class _HomepageState extends State<Homepage> {
   @override
   Widget build(BuildContext context) {
     if (_isLoading) {
-      return const Scaffold(
-        body: Center(child: CircularProgressIndicator()),
+      return Scaffold(
+        body: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const CircularProgressIndicator(),
+              if (user == null)
+                const Padding(
+                  padding: EdgeInsets.only(top: 20),
+                  child: Text(
+                    "will be there in no time...",
+                    style: TextStyle(color: Colors.blue),
+                  ),
+                ),
+            ],
+          ),
+        ),
       );
     }
 
@@ -420,26 +433,26 @@ class _HomepageState extends State<Homepage> {
               const Spacer(),
               Padding(
                 padding: const EdgeInsets.only(top: 0, right: 30),
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(100),
-                  child: SizedBox(
-                    width: 38,
-                    height: 38,
-                    child: GestureDetector(
-                      onTap: () {
-                        if (FirebaseAuth.instance.currentUser != null) {
-                          Navigator.of(context).push(MaterialPageRoute(
-                              builder: (context) =>
-                                  const ProfileInformation()));
-                        } else {
-                          Navigator.of(context).push(MaterialPageRoute(
-                              builder: (context) => const LoginPage()));
-                        }
-                      },
-                      // child: Image.asset('lib/img/person1.png'),
-                    ),
-                  ),
-                ),
+                child: user == null
+                    ? ElevatedButton(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.transparent,
+                          shadowColor: Colors.transparent,
+                          elevation: 0,
+                          foregroundColor: Colors.black,
+                        ),
+                        onPressed: () {
+                          Navigator.of(context).push(
+                            MaterialPageRoute(
+                                builder: (context) => const LoginPage()),
+                          );
+                        },
+                        child: const Text(
+                          "Login",
+                          style: TextStyle(fontSize: 20),
+                        ),
+                      )
+                    : const Text("Welcome!"),
               ),
             ],
           ),
