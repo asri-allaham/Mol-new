@@ -1,6 +1,13 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import '../simple_functions/botton.dart';
 import 'profile_information.dart';
+import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:firebase_storage/firebase_storage.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'dart:io';
 
 class EdidProfile extends StatefulWidget {
   const EdidProfile({super.key});
@@ -14,7 +21,7 @@ class _EdidProfileState extends State<EdidProfile> {
   String _selectedCountry = 'Amman';
   final _countryMenuController = MenuController();
   final _genderMenuController = MenuController();
-
+  File? _imageFile;
   final List<String> _jordanGovernorates = [
     'Amman',
     'Irbid',
@@ -29,12 +36,77 @@ class _EdidProfileState extends State<EdidProfile> {
     'Jerash',
     'Ajloun'
   ];
+  Future<void> changeProfilePicture(String userId, String oldImagePath) async {
+    try {
+      if (_imageFile == null) return;
+      final newImageUrl =
+          await uploadImageToFirebase(_imageFile!, oldImagePath);
+      await updateFirestoreProfilePicture(userId, newImageUrl);
+      print("Profile picture updated successfully!");
+    } catch (e) {
+      print("Error changing profile picture: $e");
+    }
+  }
+
+  Future<File?> pickImage() async {
+    final picker = ImagePicker();
+    final pickedFile = await picker.pickImage(source: ImageSource.gallery);
+
+    if (pickedFile != null) {
+      return File(pickedFile.path);
+    } else {
+      print("No image selected.");
+      return null;
+    }
+  }
+
+  Future<String> uploadImageToFirebase(File imageFile, String filePath) async {
+    try {
+      final storageRef = FirebaseStorage.instance.ref().child(filePath);
+      final uploadTask = await storageRef.putFile(imageFile);
+      final downloadURL = await uploadTask.ref.getDownloadURL();
+      return downloadURL;
+    } catch (e) {
+      print("Error uploading image: $e");
+      throw e;
+    }
+  }
+
+  Future<void> deleteOldImage(String oldFilePath) async {
+    try {
+      final ref = FirebaseStorage.instance.ref().child(oldFilePath);
+      await ref.delete();
+      print("Old image deleted successfully.");
+    } catch (e) {
+      print("Error deleting old image: $e");
+      throw e;
+    }
+  }
+
+  Future<void> updateFirestoreProfilePicture(
+      String userId, String newImageUrl) async {
+    try {
+      await FirebaseFirestore.instance.collection('users').doc(userId).update({
+        'profilePictureUrl': newImageUrl,
+      });
+      print("Firestore updated successfully.");
+    } catch (e) {
+      print("Error updating Firestore: $e");
+      throw e;
+    }
+  }
 
   final TextEditingController _fullNameController = TextEditingController();
   final TextEditingController _nickNameController = TextEditingController();
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _phoneController = TextEditingController();
   final TextEditingController _addressController = TextEditingController();
+  Map<String, dynamic>? _userData;
+  @override
+  void initState() {
+    super.initState();
+    fetchUserData();
+  }
 
   @override
   void dispose() {
@@ -44,6 +116,24 @@ class _EdidProfileState extends State<EdidProfile> {
     _phoneController.dispose();
     _addressController.dispose();
     super.dispose();
+  }
+
+  Future<void> fetchUserData() async {
+    final uid = FirebaseAuth.instance.currentUser?.uid;
+    if (uid != null) {
+      final doc =
+          await FirebaseFirestore.instance.collection('users').doc(uid).get();
+      if (doc.exists) {
+        setState(() {
+          _userData = doc.data();
+          _fullNameController.text = _userData!['fullName'] ?? '';
+          _nickNameController.text = _userData!['nickName'] ?? '';
+          _emailController.text = _userData!['email'] ?? '';
+          _phoneController.text = _userData!['phone'] ?? '';
+          _addressController.text = _userData!['address'] ?? '';
+        });
+      }
+    }
   }
 
   @override
@@ -154,7 +244,6 @@ class _EdidProfileState extends State<EdidProfile> {
           padding: const EdgeInsets.symmetric(horizontal: 20),
           child: Column(
             children: [
-              // Full Name Field
               Container(
                 width: double.infinity,
                 height: 50,
@@ -427,10 +516,70 @@ class _EdidProfileState extends State<EdidProfile> {
                 ),
               ),
 
-              // Submit Button
+              GradientButton(
+                text: "upload new profile image",
+                width: double.infinity,
+                onTap: () async {
+                  final pickedFile = await pickImage();
+                  if (pickedFile != null) {
+                    setState(() {
+                      _imageFile = pickedFile;
+                    });
+                  }
+                },
+              ),
+              SizedBox(
+                height: 20,
+              ),
               GradientButton(
                 text: "Submit",
-                onTap: () {},
+                onTap: () async {
+                  try {
+                    final uid = FirebaseAuth.instance.currentUser?.uid;
+                    if (uid == null) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                            content: Text('No user is currently logged in.')),
+                      );
+                      return;
+                    }
+
+                    final updatedData = {
+                      'fullName': _fullNameController.text.trim(),
+                      'nickName': _nickNameController.text.trim(),
+                      'email': _emailController.text.trim(),
+                      'phone': _phoneController.text.trim(),
+                      'address': _addressController.text.trim(),
+                    };
+
+                    await FirebaseFirestore.instance
+                        .collection('users')
+                        .doc(uid)
+                        .update(updatedData);
+
+                    // if (_imageFile != null) {
+                    //   String oldImagePath = _userData!['imageUrl'] ?? '';
+                    //   print("oldImagePath");
+                    //   print(oldImagePath);
+                    //   await changeProfilePicture(uid, oldImagePath);
+                    // }
+
+                    setState(() {
+                      _userData = {
+                        ...?_userData,
+                        ...updatedData,
+                      };
+                    });
+
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text('Profile updated successfully!')),
+                    );
+                  } catch (e) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text('Failed to update profile.')),
+                    );
+                  }
+                },
                 width: double.infinity,
               )
             ],

@@ -1,3 +1,7 @@
+import 'package:MOLLILE/Dartpages/Communicate%20with%20investor/business%20owners/masseges.dart';
+import 'package:MOLLILE/Dartpages/HomePage/Home_page.dart';
+import 'package:MOLLILE/Dartpages/HomePage/ProjectAdd.dart';
+import 'package:MOLLILE/Dartpages/sighUpIn/LoginPage.dart';
 import 'package:MOLLILE/i18n/LanguageScreen.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:easy_localization/easy_localization.dart';
@@ -25,6 +29,9 @@ class _ProfileInformationState extends State<ProfileInformation> {
   Map<String, dynamic>? _userData;
   bool _loading = true;
   bool isDarkMode = false;
+  int _selectedIndex = 0;
+  final User? user = FirebaseAuth.instance.currentUser;
+
   @override
   void initState() {
     super.initState();
@@ -174,6 +181,40 @@ class _ProfileInformationState extends State<ProfileInformation> {
                 _buildSettingsSection(context, appLang),
               ],
             ),
+      bottomNavigationBar: Positioned(
+        left: 0,
+        right: 0,
+        bottom: 0,
+        child: Container(
+          height: 60,
+          decoration: const BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+              colors: [
+                Color(0xff54826D),
+                Color(0xff03361F),
+                Color(0xff03361F),
+                Color(0xff03361F),
+                Color(0xff03361F),
+              ],
+            ),
+            borderRadius: BorderRadius.only(
+              topLeft: Radius.circular(20),
+              topRight: Radius.circular(20),
+            ),
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceAround,
+            children: [
+              _buildNavItem(Icons.home, 0),
+              _buildNavItem(Icons.add, 1),
+              _buildNavItem(Icons.message, 2),
+              _buildNavItem(Icons.person, 3),
+            ],
+          ),
+        ),
+      ),
     );
   }
 
@@ -248,6 +289,42 @@ class _ProfileInformationState extends State<ProfileInformation> {
             ),
           ]),
         ],
+      ),
+    );
+  }
+
+  Widget _buildNavItem(IconData icon, int index) {
+    return GestureDetector(
+      onTap: () {
+        setState(() {
+          _selectedIndex = index;
+        });
+        if (_selectedIndex == 0) {
+          if (user != null) {
+            Navigator.of(context).push(
+                MaterialPageRoute(builder: (context) => const Homepage()));
+          }
+        } else if (_selectedIndex == 1) {
+          if (user != null) {
+            Navigator.of(context).push(
+                MaterialPageRoute(builder: (context) => const ProjectAdd()));
+          } else {
+            Navigator.of(context).push(
+                MaterialPageRoute(builder: (context) => const LoginPage()));
+          }
+        } else if (_selectedIndex == 2) {
+          if (user != null) {
+            Navigator.of(context)
+                .push(MaterialPageRoute(builder: (context) => MessagesPage()));
+          } else {
+            Navigator.of(context).push(
+                MaterialPageRoute(builder: (context) => const LoginPage()));
+          }
+        }
+      },
+      child: Icon(
+        icon,
+        color: Colors.white,
       ),
     );
   }

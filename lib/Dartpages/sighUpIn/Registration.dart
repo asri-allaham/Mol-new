@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -33,16 +34,23 @@ class _RegisterScreenState extends State<RegisterScreen> {
     }
   }
 
+  Future<bool> isConnected() async {
+    var connectivityResult = await Connectivity().checkConnectivity();
+    return connectivityResult != ConnectivityResult.none;
+  }
+
   Future<String?> _uploadImage(String uid) async {
     if (_selectedImage == null) return null;
 
     try {
-      final ref = FirebaseStorage.instance
-          .ref()
-          .child('profile_images')
-          .child('$uid.jpg');
-      await ref.putFile(_selectedImage!);
-      return await ref.getDownloadURL();
+      if (await isConnected()) {
+        final ref = FirebaseStorage.instance
+            .ref()
+            .child('profile_images')
+            .child('$uid.jpg');
+        await ref.putFile(_selectedImage!);
+        return await ref.getDownloadURL();
+      } else {}
     } catch (e) {
       debugPrint("Error uploading image: $e");
       return null;

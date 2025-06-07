@@ -1,8 +1,11 @@
 import 'package:MOLLILE/Dartpages/CustomWidget/SearchBox.dart';
 import 'package:MOLLILE/Dartpages/HomePage/ProjectAdd.dart';
+import 'package:MOLLILE/Dartpages/HomePage/viewItems.dart';
+import 'package:MOLLILE/Dartpages/HomePage/viewProject.dart';
 import 'package:MOLLILE/Dartpages/UserData/profile_information.dart';
 import 'package:MOLLILE/Dartpages/sighUpIn/LoginPage.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -17,7 +20,8 @@ class Homepage extends StatefulWidget {
 }
 
 class _HomepageState extends State<Homepage> {
-  List<String> categories = [
+  List<String?> categories = [
+    null,
     'Technology',
     'Health',
     'Education',
@@ -29,11 +33,12 @@ class _HomepageState extends State<Homepage> {
   int _currentPopularImageIndex = 0;
   int _currentInvestmentImageIndex = 0;
   int _selectedIndex = 0;
-  final User? user = FirebaseAuth.instance.currentUser;
+
+  User? user;
   Map<String, dynamic>? _userData;
   List<Map<String, dynamic>> projects = [];
   bool _isLoading = true;
-
+  String currentPage = "Home";
   @override
   void initState() {
     super.initState();
@@ -42,6 +47,8 @@ class _HomepageState extends State<Homepage> {
   }
 
   Future<void> fetchUserData() async {
+    await FirebaseAuth.instance.currentUser?.reload();
+    user = FirebaseAuth.instance.currentUser;
     final uid = FirebaseAuth.instance.currentUser?.uid;
     if (uid != null) {
       final doc =
@@ -74,7 +81,7 @@ class _HomepageState extends State<Homepage> {
 
       final userSnapshots = await Future.wait(userFutures);
 
-      for (int i = 0; i < snapshot.docs.length; i++) {
+      for (int i = 0; i < snapshot.docs.length && i < 3; i++) {
         final projectData = snapshot.docs[i].data();
         final userSnapshot = userSnapshots[i];
         final ownerImage = userSnapshot.exists
@@ -128,34 +135,29 @@ class _HomepageState extends State<Homepage> {
                 if (projects.isNotEmpty)
                   _buildSectionTitle("the_most_popular".tr()),
                 const SizedBox(height: 12),
-                _buildImageSlider(
-                  projects,
-                  _currentPopularImageIndex,
-                  (index) {
-                    setState(() {
-                      _currentPopularImageIndex = index;
-                    });
-                  },
-                ),
+                _buildImageSlider(projects, _currentPopularImageIndex, (index) {
+                  setState(() {
+                    _currentPopularImageIndex = index;
+                  });
+                }, 3),
                 _buildInfoRow(_currentPopularImageIndex, projects.length),
                 const SizedBox(height: 30),
                 if (projects.isNotEmpty)
                   _buildSectionTitle("highest_investment".tr()),
                 const SizedBox(height: 12),
-                _buildImageSlider(
-                  projects,
-                  _currentInvestmentImageIndex,
-                  (index) {
-                    setState(() {
-                      _currentInvestmentImageIndex = index;
-                    });
-                  },
-                ),
+                _buildImageSlider(projects, _currentInvestmentImageIndex,
+                    (index) {
+                  setState(() {
+                    _currentInvestmentImageIndex = index;
+                  });
+                }, 3),
                 _buildInfoRow(_currentInvestmentImageIndex, projects.length),
                 const SizedBox(height: 30),
+                _DisplayItem(),
               ],
             ),
           ),
+          //here
           _buildHeader(),
           Positioned(
             left: 0,
@@ -196,6 +198,57 @@ class _HomepageState extends State<Homepage> {
     );
   }
 
+  Widget _DisplayItem() {
+    return GridView.builder(
+      padding: const EdgeInsets.all(10),
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      itemCount: projects.length,
+      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: 1,
+        crossAxisSpacing: 10,
+        mainAxisSpacing: 10,
+        childAspectRatio: 0.8,
+      ),
+      itemBuilder: (ctx, index) {
+        final project = projects[index];
+        final imageUrl = (project['image_urls'] as List).isNotEmpty
+            ? project['image_urls'][0]
+            : null;
+
+        return Card(
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          elevation: 2,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Expanded(
+                child: ClipRRect(
+                  borderRadius:
+                      const BorderRadius.vertical(top: Radius.circular(12)),
+                  child: imageUrl != null
+                      ? Image.network(imageUrl, fit: BoxFit.cover)
+                      : Image.asset('lib/img/placeholder.png',
+                          fit: BoxFit.cover),
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.all(8),
+                child: Text(
+                  project['name'] ?? 'No Name',
+                  style: const TextStyle(fontWeight: FontWeight.bold),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
   Widget _buildSectionTitle(String title) {
     return Row(
       children: [
@@ -205,9 +258,24 @@ class _HomepageState extends State<Homepage> {
           style: const TextStyle(fontSize: 18, color: Color(0xff012113)),
         ),
         const Spacer(),
-        Text(
-          "view_all".tr(),
-          style: const TextStyle(fontSize: 15, color: Color(0xff54826D)),
+        InkWell(
+          child: Text(
+            "view_all".tr(),
+            style: const TextStyle(fontSize: 15, color: Color(0xff54826D)),
+          ),
+          onTap: () {
+            Navigator.of(context).push(
+              MaterialPageRoute(
+                fullscreenDialog: true,
+                builder: (context) => Scaffold(
+                  appBar: AppBar(
+                    title: Text("All Projects"),
+                  ),
+                  body: Viewitems(projects: projects),
+                ),
+              ),
+            );
+          },
         ),
         const SizedBox(width: 10),
       ],
@@ -215,27 +283,30 @@ class _HomepageState extends State<Homepage> {
   }
 
   Widget _buildImageSlider(List<Map<String, dynamic>> projectList,
-      int currentIndex, Function(int) onChanged) {
+      int currentIndex, Function(int) onChanged, int length) {
     return SizedBox(
-      height: 260,
+      height: 300,
       child: PageView.builder(
-        itemCount: projectList.length > 3 ? 3 : projectList.length,
+        itemCount: projectList.length > 3 ? length : projectList.length,
+        scrollDirection: Axis.horizontal,
         onPageChanged: onChanged,
         itemBuilder: (context, index) {
-          // final imageUrlList = projectList[index]['image_urls'];
-          // final imageUrl = (imageUrlList is List && imageUrlList.isNotEmpty)
-          //     ? imageUrlList[0]
-          //     : null;
+          final imageUrlList = projectList[index]['image_urls'];
+          final imageUrl = (imageUrlList is List && imageUrlList.isNotEmpty)
+              ? imageUrlList[0]
+              : null;
 
-          return Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 50),
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(20),
+          final screenWidth = MediaQuery.of(context).size.width;
+          final imageSize = screenWidth * 1;
+
+          return Center(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
               child: Stack(
+                alignment: Alignment.bottomLeft,
                 children: [
-                  Positioned(
-                    left: 10,
-                    bottom: 10,
+                  Padding(
+                    padding: const EdgeInsets.all(8.0),
                     child: ClipOval(
                       child: projects[index]['owner_image'] != null &&
                               projects[index]['owner_image'] != ''
@@ -253,6 +324,24 @@ class _HomepageState extends State<Homepage> {
                             ),
                     ),
                   ),
+                  InkWell(
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(20),
+                      child: imageUrl != null && imageUrl != ''
+                          ? Image.network(
+                              imageUrl,
+                              fit: BoxFit.cover,
+                              width: imageSize,
+                              height: imageSize,
+                            )
+                          : Image.asset(
+                              'lib/img/placeholder.png',
+                              fit: BoxFit.cover,
+                              width: imageSize,
+                              height: imageSize,
+                            ),
+                    ),
+                  ),
                 ],
               ),
             ),
@@ -267,10 +356,6 @@ class _HomepageState extends State<Homepage> {
       return Center(child: Text("no_projects_found".tr()));
     }
 
-    if (currentIndex < 0 || currentIndex >= projects.length) {
-      return Center(child: Text("invalid_project_index".tr()));
-    }
-
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20),
       child: Row(
@@ -282,10 +367,6 @@ class _HomepageState extends State<Homepage> {
                 projects[currentIndex]['name'],
                 style: const TextStyle(fontSize: 15, color: Color(0xff000000)),
               ),
-              // Text( no need
-              //   projects[currentIndex]['description'],
-              //   style: const TextStyle(fontSize: 15, color: Color(0xff000000)),
-              // ),
             ],
           ),
           const SizedBox(width: 50),
@@ -305,11 +386,11 @@ class _HomepageState extends State<Homepage> {
             }),
           ),
           const Spacer(),
-          Text(
-            "75%", // You may want to calculate this based on data
-            style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
-          ),
-          const SizedBox(width: 50),
+          // Text(
+          //   "75%",
+          //   style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
+          // ),
+          // const SizedBox(width: 50),
         ],
       ),
     );
@@ -355,7 +436,7 @@ class _HomepageState extends State<Homepage> {
                               builder: (context) => const LoginPage()));
                         }
                       },
-                      child: Image.asset('lib/img/person1.png'),
+                      // child: Image.asset('lib/img/person1.png'),
                     ),
                   ),
                 ),
@@ -369,11 +450,18 @@ class _HomepageState extends State<Homepage> {
               child: Row(
                 children: [
                   Padding(
-                    padding: const EdgeInsets.only(right: 5),
-                    child:
-                        Image.asset('lib/img/logo.png', height: 28, width: 28),
+                    padding: EdgeInsets.only(
+                      right: MediaQuery.of(context).size.height * 0.035,
+                    ),
+                    child: Image.asset(
+                      'lib/img/logo.png',
+                      height: MediaQuery.of(context).size.height * 0.035,
+                      width: MediaQuery.of(context).size.height * 0.035,
+                    ),
                   ),
-                  CustomSearchBox(hintText: "search_here".tr()),
+                  Expanded(
+                    child: CustomSearchBox(hintText: "search_here".tr()),
+                  ),
                 ],
               ),
             ),
@@ -386,12 +474,22 @@ class _HomepageState extends State<Homepage> {
               children: List.generate(6, (index) {
                 return InkWell(
                   child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 15),
-                    child: Image.asset('lib/img/img_${index + 1}.png',
-                        width: 26, height: 24),
+                    padding: EdgeInsets.only(
+                      right: MediaQuery.of(context).size.height * 0.05,
+                    ),
+                    child: Container(
+                      width: 60,
+                      child: Center(
+                        child: Image.asset(
+                          'lib/img/img_${index + 1}.png',
+                          width: 26,
+                          height: 24,
+                        ),
+                      ),
+                    ),
                   ),
                   onTap: () {
-                    String selectedCategory = categories[index];
+                    String? selectedCategory = categories[index];
                     setState(() {
                       _isLoading = true;
                     });

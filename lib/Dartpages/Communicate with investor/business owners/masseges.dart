@@ -1,3 +1,7 @@
+import 'package:MOLLILE/Dartpages/HomePage/Home_page.dart';
+import 'package:MOLLILE/Dartpages/HomePage/ProjectAdd.dart';
+import 'package:MOLLILE/Dartpages/UserData/profile_information.dart';
+import 'package:MOLLILE/Dartpages/sighUpIn/LoginPage.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -21,6 +25,7 @@ class _MessagesPageState extends State<MessagesPage> {
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   late User _currentUser;
+  final User? user = FirebaseAuth.instance.currentUser;
 
   List<DocumentSnapshot> filteredUsers = [];
   List<DocumentSnapshot> allUsers = [];
@@ -33,6 +38,7 @@ class _MessagesPageState extends State<MessagesPage> {
   String _currentChatId = "";
   String _currentOtherUserEmail = "";
   String _currentOtherUserName = "";
+  bool _isLoading = false;
 
   @override
   void initState() {
@@ -625,29 +631,35 @@ class _MessagesPageState extends State<MessagesPage> {
         setState(() {
           _selectedIndex = index;
         });
+        if (_selectedIndex == 0) {
+          if (user != null) {
+            Navigator.of(context).push(
+                MaterialPageRoute(builder: (context) => const Homepage()));
+          } else {
+            Navigator.of(context).push(
+                MaterialPageRoute(builder: (context) => const LoginPage()));
+          }
+        } else if (_selectedIndex == 1) {
+          if (user != null) {
+            Navigator.of(context).push(
+                MaterialPageRoute(builder: (context) => const ProjectAdd()));
+          } else {
+            Navigator.of(context).push(
+                MaterialPageRoute(builder: (context) => const LoginPage()));
+          }
+        } else if (_selectedIndex == 3) {
+          if (user != null) {
+            Navigator.of(context).push(MaterialPageRoute(
+                builder: (context) => const ProfileInformation()));
+          } else {
+            Navigator.of(context).push(
+                MaterialPageRoute(builder: (context) => const LoginPage()));
+          }
+        }
       },
-      child: Container(
-        padding: const EdgeInsets.all(8.0),
-        decoration: BoxDecoration(
-          shape: BoxShape.circle,
-          boxShadow: _selectedIndex == index
-              ? [
-                  BoxShadow(
-                    color: const Color.fromARGB(255, 169, 227, 159)
-                        .withOpacity(0.1),
-                    blurRadius: 10,
-                    spreadRadius: 2,
-                  ),
-                ]
-              : null,
-        ),
-        child: Icon(
-          icon,
-          color: _selectedIndex == index
-              ? const Color.fromARGB(255, 173, 231, 174)
-              : Colors.white,
-          size: 30,
-        ),
+      child: Icon(
+        icon,
+        color: Colors.white,
       ),
     );
   }
