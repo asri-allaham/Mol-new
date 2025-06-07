@@ -107,21 +107,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
     await prefs.setString('userImageUrl', imageUrl ?? '');
   }
 
-  // Future<void> _signOutAndNotify() async {
-  //   await FirebaseAuth.instance.signOut();
-
-  //   if (mounted) {
-  //     ScaffoldMessenger.of(context).showSnackBar(
-  //       const SnackBar(
-  //         content: Text(
-  //             'Verification email sent! Please verify your email to login.'),
-  //         duration: Duration(seconds: 5),
-  //       ),
-  //     );
-  //     Navigator.pop(context);
-  //   }
-  // }
-
   void _showErrorSnackBar(String message) {
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(

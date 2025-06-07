@@ -1,8 +1,9 @@
 import 'package:MOLLILE/Dartpages/CustomWidget/SearchBox.dart';
-import 'package:MOLLILE/Dartpages/HomePage/ProjectAdd.dart';
+import 'package:MOLLILE/project%20post/ProjectAdd.dart';
 import 'package:MOLLILE/Dartpages/HomePage/viewItems.dart';
 import 'package:MOLLILE/Dartpages/UserData/profile_information.dart';
 import 'package:MOLLILE/Dartpages/sighUpIn/LoginPage.dart';
+import 'package:MOLLILE/project%20post/TapsSystem.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
@@ -32,6 +33,8 @@ class _HomepageState extends State<Homepage> {
   int _currentInvestmentImageIndex = 0;
   int _selectedIndex = 0;
 
+  TextEditingController _searchController = TextEditingController();
+
   User? user;
   Map<String, dynamic>? _userData;
   List<Map<String, dynamic>> projects = [];
@@ -59,7 +62,7 @@ class _HomepageState extends State<Homepage> {
     }
   }
 
-  Future<void> fetchProjectsAndOwners([String? category]) async {
+  Future<void> fetchProjectsAndOwners([String? category, String? name]) async {
     try {
       final query = FirebaseFirestore.instance.collection('projects');
       final snapshot = category == null
@@ -71,39 +74,48 @@ class _HomepageState extends State<Homepage> {
 
       for (var doc in snapshot.docs) {
         final projectData = doc.data();
+
+        if (name != null &&
+            !projectData['name']
+                .toString()
+                .toLowerCase()
+                .contains(name.toLowerCase())) {
+          continue;
+        }
+
         final userId = projectData['user_id'];
         userFutures.add(
           FirebaseFirestore.instance.collection('users').doc(userId).get(),
         );
+
+        loadedProjects.add(projectData);
       }
 
       final userSnapshots = await Future.wait(userFutures);
 
-      for (int i = 0; i < snapshot.docs.length && i < 3; i++) {
-        final projectData = snapshot.docs[i].data();
+      for (int i = 0; i < loadedProjects.length; i++) {
         final userSnapshot = userSnapshots[i];
         final ownerImage = userSnapshot.exists
             ? (userSnapshot.data() as Map<String, dynamic>)['urlImage'] ?? ''
             : '';
 
-        loadedProjects.add({
-          'user_id': projectData['user_id'],
-          'name': projectData['name'],
-          'description': projectData['description'],
-          'image_urls': projectData['image_urls'],
-          'investment_amount': projectData['investment_amount'],
-          'category': projectData['category'],
-          'created_at': projectData['created_at'],
-          'owner_image': ownerImage,
-        });
+        loadedProjects[i]['owner_image'] = ownerImage;
       }
+
+      loadedProjects.sort((a, b) {
+        int nameCmp = a['name'].compareTo(b['name']);
+        if (nameCmp != 0) return nameCmp;
+        int descCmp = a['description'].compareTo(b['description']);
+        if (descCmp != 0) return descCmp;
+        return a['investment_amount'].compareTo(b['investment_amount']);
+      });
 
       setState(() {
         projects = loadedProjects;
         _isLoading = false;
       });
 
-      print("✅ Projects for category '${category ?? "All"}' loaded!");
+      print("✅ Projects filtered by name '${name ?? "All"}' loaded!");
     } catch (e) {
       setState(() {
         _isLoading = false;
@@ -428,53 +440,70 @@ class _HomepageState extends State<Homepage> {
       ),
       child: Column(
         children: [
-          Row(
-            children: [
-              const Spacer(),
-              Padding(
-                padding: const EdgeInsets.only(top: 0, right: 30),
-                child: user == null
-                    ? ElevatedButton(
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.transparent,
-                          shadowColor: Colors.transparent,
-                          elevation: 0,
-                          foregroundColor: Colors.black,
-                        ),
-                        onPressed: () {
-                          Navigator.of(context).push(
-                            MaterialPageRoute(
-                                builder: (context) => const LoginPage()),
-                          );
-                        },
-                        child: const Text(
-                          "Login",
-                          style: TextStyle(fontSize: 20),
-                        ),
-                      )
-                    : const Text("Welcome!"),
-              ),
-            ],
-          ),
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 10),
             child: InkWell(
               onTap: () {},
-              child: Row(
+              child: Column(
                 children: [
                   Padding(
                     padding: EdgeInsets.only(
-                      right: MediaQuery.of(context).size.height * 0.035,
-                    ),
-                    child: Image.asset(
-                      'lib/img/logo.png',
-                      height: MediaQuery.of(context).size.height * 0.035,
-                      width: MediaQuery.of(context).size.height * 0.035,
+                        left: MediaQuery.of(context).size.height * 0.035,
+                        top: MediaQuery.of(context).size.height * 0.015),
+                    child: Row(
+                      children: [
+                        Image.asset(
+                          'lib/img/logo.png',
+                          height: MediaQuery.of(context).size.height * 0.035,
+                          width: MediaQuery.of(context).size.height * 0.035,
+                        ),
+                        user == null
+                            ? ElevatedButton(
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: Colors.transparent,
+                                  shadowColor: Colors.transparent,
+                                  elevation: 0,
+                                  foregroundColor: Colors.black,
+                                ),
+                                onPressed: () {
+                                  Navigator.of(context).push(
+                                    MaterialPageRoute(
+                                        builder: (context) =>
+                                            const LoginPage()),
+                                  );
+                                },
+                                child: Padding(
+                                  padding: EdgeInsets.only(
+                                      left: MediaQuery.of(context).size.height *
+                                          0.22),
+                                  child: const Text(
+                                    "Login",
+                                    style: TextStyle(
+                                        fontSize: 15, color: Colors.white),
+                                  ),
+                                ),
+                              )
+                            : const Text(""),
+                      ],
                     ),
                   ),
-                  Expanded(
-                    child: CustomSearchBox(hintText: "search_here".tr()),
-                  ),
+                  Row(
+                    children: [
+                      Padding(
+                        padding: EdgeInsets.only(
+                          left: MediaQuery.of(context).size.height * 0.035,
+                        ),
+                        child: CustomSearchBox(
+                          controller: _searchController,
+                          onChanged: (value) {
+                            fetchProjectsAndOwners(null, value);
+                          },
+                          hintText: "Search by project name",
+                          width: MediaQuery.of(context).size.height * 0.25,
+                        ),
+                      ),
+                    ],
+                  )
                 ],
               ),
             ),
@@ -526,8 +555,8 @@ class _HomepageState extends State<Homepage> {
 
         if (_selectedIndex == 1) {
           if (user != null) {
-            Navigator.of(context).push(
-                MaterialPageRoute(builder: (context) => const ProjectAdd()));
+            Navigator.of(context)
+                .push(MaterialPageRoute(builder: (context) => BottomTabs()));
           } else {
             Navigator.of(context).push(
                 MaterialPageRoute(builder: (context) => const LoginPage()));
