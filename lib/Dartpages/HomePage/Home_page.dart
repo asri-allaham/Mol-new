@@ -1,10 +1,10 @@
 import 'package:MOLLILE/Dartpages/CustomWidget/SearchBox.dart';
 import 'package:MOLLILE/Dartpages/HomePage/placeholders.dart';
-import 'package:MOLLILE/project%20post/ProjectAdd.dart';
+import 'package:MOLLILE/project%20add%20post/ProjectAdd.dart';
 import 'package:MOLLILE/Dartpages/HomePage/viewItems.dart';
 import 'package:MOLLILE/Dartpages/UserData/profile_information.dart';
 import 'package:MOLLILE/Dartpages/sighUpIn/LoginPage.dart';
-import 'package:MOLLILE/project%20post/TapsSystem.dart';
+import 'package:MOLLILE/project%20add%20post/TapsSystem.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';

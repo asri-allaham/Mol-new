@@ -52,6 +52,8 @@ dependencies:
   easy_localization: ^3.0.7+1
   flutter_bloc: ^9.1.1
   flutter_phoenix: ^1.1.1
+  timeago: ^3.7.1
+  star_menu: ^4.0.1
   # firebase_functions: 5.0.0
 
 dev_dependencies:

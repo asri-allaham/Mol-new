@@ -101,6 +101,7 @@ class _ImageUploaderPageState extends State<ProjectAdd> {
       'category': _selectedCategory ?? 'Uncategorized',
       'image_urls': imageUrls,
       'created_at': FieldValue.serverTimestamp(),
+      'projectNumber': getNextProjectNumberForUser(user?.uid)
     });
   }
 
@@ -254,5 +255,14 @@ class _ImageUploaderPageState extends State<ProjectAdd> {
         ),
       ),
     );
+  }
+
+  Future<int> getNextProjectNumberForUser(String? userId) async {
+    final querySnapshot = await FirebaseFirestore.instance
+        .collection('projects')
+        .where('user_id', isEqualTo: userId)
+        .get();
+
+    return querySnapshot.docs.length + 1;
   }
 }
