@@ -6,6 +6,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'LoginPage.dart';
 
 class RegisterScreen extends StatefulWidget {
   static String routeName = "RegisterScreen";
@@ -118,7 +119,15 @@ class _RegisterScreenState extends State<RegisterScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text("Register")),
+      backgroundColor: Color(0xffECECEC),
+      appBar: AppBar(
+        title: const Text(
+          "Register",
+          style: TextStyle(color: Color(0xff012113)),
+        ),
+        backgroundColor: Color(0xffECECEC),
+        iconTheme: IconThemeData(color: Color(0xff012113)),
+      ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Form(
@@ -132,12 +141,17 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   child: GestureDetector(
                     onTap: _pickImage,
                     child: CircleAvatar(
+                      backgroundColor: Color(0xffD8E8E0),
                       radius: 40,
                       backgroundImage: _selectedImage != null
                           ? FileImage(_selectedImage!)
                           : null,
                       child: _selectedImage == null
-                          ? const Icon(Icons.add_a_photo, size: 30)
+                          ? const Icon(
+                              Icons.add_a_photo,
+                              size: 30,
+                              color: Color(0xff012113),
+                            )
                           : null,
                     ),
                   ),
@@ -146,9 +160,27 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 TextFormField(
                   controller: _usernameController,
                   enabled: !_isLoading,
-                  decoration: const InputDecoration(
+                  decoration: InputDecoration(
                     labelText: "Username",
-                    border: OutlineInputBorder(),
+                    labelStyle: TextStyle(
+                      color: Color(0xff54826D),
+                    ),
+
+                    enabledBorder: OutlineInputBorder(
+                      borderSide: BorderSide(
+                        color: Color(
+                            0xff54826D), // لون الحدود عندما لا يكون الحقل في حالة تركيز
+                        width: 1.0,
+                      ),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderSide: BorderSide(
+                        color: Color(
+                            0xff112E21), // لون الحدود عندما يكون الحقل في حالة تركيز
+                        width: 2.0,
+                      ),
+                    ),
+                    border: OutlineInputBorder(), // هذا يحدد النمط العام للحدود
                   ),
                   validator: (value) {
                     if (value == null || value.isEmpty) {
@@ -163,7 +195,23 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   enabled: !_isLoading,
                   decoration: const InputDecoration(
                     labelText: "Email",
-                    border: OutlineInputBorder(),
+                    labelStyle: TextStyle(color: Color(0xff54826D)),
+
+                    enabledBorder: OutlineInputBorder(
+                      borderSide: BorderSide(
+                        color: Color(
+                            0xff54826D), // لون الحدود عندما لا يكون الحقل في حالة تركيز
+                        width: 1.0,
+                      ),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderSide: BorderSide(
+                        color: Color(
+                            0xff112E21), // لون الحدود عندما يكون الحقل في حالة تركيز
+                        width: 2.0,
+                      ),
+                    ),
+                    border: OutlineInputBorder(), // هذا يحدد النمط العام للحدود
                   ),
                   keyboardType: TextInputType.emailAddress,
                   validator: (value) {
@@ -182,7 +230,22 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   enabled: !_isLoading,
                   decoration: const InputDecoration(
                     labelText: "Password",
-                    border: OutlineInputBorder(),
+                    labelStyle: TextStyle(color: Color(0xff54826D)),
+                    enabledBorder: OutlineInputBorder(
+                      borderSide: BorderSide(
+                        color: Color(
+                            0xff54826D), // لون الحدود عندما لا يكون الحقل في حالة تركيز
+                        width: 1.0,
+                      ),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderSide: BorderSide(
+                        color: Color(
+                            0xff112E21), // لون الحدود عندما يكون الحقل في حالة تركيز
+                        width: 2.0,
+                      ),
+                    ),
+                    border: OutlineInputBorder(), // هذا يحدد النمط العام للحدود
                   ),
                   obscureText: true,
                   validator: (value) {
@@ -201,7 +264,21 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   enabled: !_isLoading,
                   decoration: const InputDecoration(
                     labelText: "Confirm Password",
-                    border: OutlineInputBorder(),
+                    labelStyle: TextStyle(color: Color(0xff54826D)),
+                    enabledBorder: OutlineInputBorder(
+                      borderSide: BorderSide(
+                        color: Color(0xff54826D),
+                        width: 1.0,
+                      ),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderSide: BorderSide(
+                        color: Color(
+                            0xff112E21), // لون الحدود عندما يكون الحقل في حالة تركيز
+                        width: 2.0,
+                      ),
+                    ),
+                    border: OutlineInputBorder(), // هذا يحدد النمط العام للحدود
                   ),
                   obscureText: true,
                   validator: (value) {
@@ -217,19 +294,53 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     return null;
                   },
                 ),
-                const SizedBox(height: 24),
+                const SizedBox(height: 44),
                 ElevatedButton(
                   onPressed: _isLoading ? null : _handleRegistration,
                   style: ElevatedButton.styleFrom(
+                    backgroundColor: Color(0xff03361F), // لون الخلفية الأساسي
+                    foregroundColor: Colors
+                        .white, // لون النص (وأيقونة loading إذا كانت موجودة)
                     padding: const EdgeInsets.symmetric(vertical: 16),
+                    shape: RoundedRectangleBorder(
+                      // يمكنك إضافة زوايا دائرية إذا أردت
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    elevation: 4, // ظل الزر
+                    shadowColor: Colors.black.withOpacity(0.2), // لون الظل
                   ),
                   child: _isLoading
                       ? const CircularProgressIndicator(color: Colors.white)
-                      : const Text("Register", style: TextStyle(fontSize: 16)),
+                      : const Text(
+                          "Register",
+                          style: TextStyle(
+                              fontSize: 16, fontWeight: FontWeight.w600),
+                        ),
                 ),
+                const SizedBox(height: 5),
                 ElevatedButton(
-                  child: const Text("Already have an account? Login"),
-                  onPressed: () => Navigator.pop(context),
+                  onPressed: () {
+                    Navigator.of(context).push(
+                        MaterialPageRoute(builder: (context) => LoginPage()));
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.transparent, // خلفية شفافة
+                    foregroundColor: Color(0xff03361F), // لون النص (أخضر داكن)
+                    elevation: 0, // إزالة الظل
+                    padding: EdgeInsets.zero, // إزالة الحشو الداخلي
+                    tapTargetSize:
+                        MaterialTapTargetSize.shrinkWrap, // تقليل مساحة الضغط
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(0), // لا حواف دائرية
+                    ),
+                  ),
+                  child: const Text(
+                    "Already have an account? Login",
+                    style: TextStyle(
+                      fontSize: 16,
+                      decoration: TextDecoration.underline, // وضع خط تحت النص
+                    ),
+                  ),
                 ),
               ],
             ),

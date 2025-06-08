@@ -1,4 +1,5 @@
 import 'package:MOLLILE/Dartpages/CustomWidget/SearchBox.dart';
+import 'package:MOLLILE/Dartpages/HomePage/placeholders.dart';
 import 'package:MOLLILE/project%20post/ProjectAdd.dart';
 import 'package:MOLLILE/Dartpages/HomePage/viewItems.dart';
 import 'package:MOLLILE/Dartpages/UserData/profile_information.dart';
@@ -153,7 +154,8 @@ class _HomepageState extends State<Homepage> {
       body: Stack(
         children: [
           Padding(
-            padding: const EdgeInsets.only(top: 166, bottom: 60),
+            padding: EdgeInsets.only(
+                top: MediaQuery.of(context).size.height * 0.035, bottom: 60),
             child: ListView(
               children: [
                 const SizedBox(height: 20),
@@ -350,6 +352,11 @@ class _HomepageState extends State<Homepage> {
                     ),
                   ),
                   InkWell(
+                    onTap: () {
+                      Navigator.of(context).push(MaterialPageRoute(
+                          builder: (context) =>
+                              Placeholders(projectList[index])));
+                    },
                     child: ClipRRect(
                       borderRadius: BorderRadius.circular(20),
                       child: imageUrl != null && imageUrl != ''
@@ -517,7 +524,7 @@ class _HomepageState extends State<Homepage> {
                 return InkWell(
                   child: Padding(
                     padding: EdgeInsets.only(
-                      right: MediaQuery.of(context).size.height * 0.05,
+                      right: MediaQuery.of(context).size.height * 0.01,
                     ),
                     child: Container(
                       width: 60,

@@ -46,7 +46,7 @@ class _CustomSearchBoxState extends State<CustomSearchBox> {
     double animatedWidth = _isFocused ? widget.width * 1.4 : widget.width;
 
     return AnimatedContainer(
-      duration: const Duration(milliseconds: 7000),
+      duration: const Duration(milliseconds: 300),
       curve: Curves.easeInOut,
       width: animatedWidth,
       height: widget.height,

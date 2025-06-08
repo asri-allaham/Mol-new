@@ -122,6 +122,15 @@ class _LoginPageState extends State<LoginPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      appBar: AppBar(
+        toolbarHeight: 40,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back, color: Color(0xff012113)),
+          onPressed: () => Navigator.of(context).pop(),
+        ),
+        backgroundColor: const Color(0xffECECEC),
+        elevation: 0,
+      ),
       body: Container(
         width: double.infinity,
         decoration: const BoxDecoration(
@@ -132,7 +141,7 @@ class _LoginPageState extends State<LoginPage> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const SizedBox(height: 55),
+              const SizedBox(height: 5),
               _buildSectionTitle("WELCOME BACK", fontSize: 17),
               _buildSectionTitle("Log In Your Account",
                   fontSize: 30, isBold: true),
@@ -305,10 +314,14 @@ class _LoginPageState extends State<LoginPage> {
   }
 
   Widget _buildOrDivider() {
+    final screenWidth = MediaQuery.of(context).size.width;
+    final lineWidth = (screenWidth - 69) / 2;
+
     return Row(
       children: [
-        const Spacer(),
-        Container(height: 1, width: 138, color: const Color(0xffABBEB5)),
+        Expanded(
+          child: Container(height: 1, color: const Color(0xffABBEB5)),
+        ),
         Container(
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(100),
@@ -323,23 +336,24 @@ class _LoginPageState extends State<LoginPage> {
             ),
           ),
         ),
-        Container(height: 1, width: 138, color: const Color(0xffABBEB5)),
-        const Spacer(),
+        Expanded(
+          child: Container(height: 1, color: const Color(0xffABBEB5)),
+        ),
       ],
     );
   }
 
   Widget _buildGoogleLoginButton() {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 25),
+      padding: const EdgeInsets.symmetric(horizontal: 5),
       child: ElevatedButton(
         onPressed: _isLoading ? null : signInWithGoogle,
         style: ElevatedButton.styleFrom(
-          backgroundColor: Colors.white,
+          backgroundColor: Color(0xffABBEB5),
           padding: const EdgeInsets.symmetric(vertical: 12),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(12),
-            side: const BorderSide(color: Color(0xff54826D), width: 1.5),
+            side: const BorderSide(color: Color(0xffABBEB5), width: 1.5),
           ),
         ),
         child: Row(

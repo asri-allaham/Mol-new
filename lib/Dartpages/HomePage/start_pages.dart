@@ -68,6 +68,7 @@ class _StartThreePagesState extends State<StartThreePages> {
         children: [
           Expanded(
             child: ListView(
+              physics: NeverScrollableScrollPhysics(),
               children: [
                 SizedBox(
                   height: 300,
