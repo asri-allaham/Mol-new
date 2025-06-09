@@ -20,22 +20,145 @@ class _ImageUploaderPageState extends State<Post> {
   final TextEditingController _projectNameController = TextEditingController();
   final TextEditingController _projectDescriptionController =
       TextEditingController();
-  String? selectedCategory;
-  List<String> categories = [];
+
+  String? searchQuery;
   List<Map<String, dynamic>> projects = [];
+  List<Map<String, dynamic>> filteredProjects = [];
   bool _isLoading = true;
   Map<String, dynamic>? selectedProject;
 
   final user = FirebaseAuth.instance.currentUser;
+
+  bool isLoading = false;
+  final List<String> badWords = [
+    'damn',
+    'hell',
+    'crap',
+    'shit',
+    'fuck',
+    'bitch',
+    'asshole',
+    'bastard',
+    'dick',
+    'piss',
+    'darn',
+    'cock',
+    'pussy',
+    'fag',
+    'slut',
+    'whore',
+    'nigger',
+    'cunt',
+    'bollocks',
+    'bugger',
+    'bloody',
+    'arse',
+    'twat',
+    'prick',
+    'motherfucker',
+    'son of a bitch',
+    'goddamn',
+    'dammit',
+    'shithead',
+    'douche',
+    'jerk',
+    'crappy',
+    'fucker',
+    'wanker',
+    'chink',
+    'spic',
+    'retard',
+    'kike',
+    'dyke',
+    'slutty',
+    'twat',
+    'shitface',
+    'faggy',
+    'ass',
+    'bimbo',
+    'shitbag',
+    'douchebag'
+  ];
+  late final Map<String, String> badWordsSoundex;
+
+  String soundex(String s) {
+    if (s.isEmpty) return "";
+
+    final Map<String, String> codes = {
+      'b': '1',
+      'f': '1',
+      'p': '1',
+      'v': '1',
+      'c': '2',
+      'g': '2',
+      'j': '2',
+      'k': '2',
+      'q': '2',
+      's': '2',
+      'x': '2',
+      'z': '2',
+      'd': '3',
+      't': '3',
+      'l': '4',
+      'm': '5',
+      'n': '5',
+      'r': '6',
+    };
+
+    String upper = s.toLowerCase();
+    String firstLetter = upper[0].toUpperCase();
+    StringBuffer output = StringBuffer(firstLetter);
+
+    String lastCode = codes[upper[0]] ?? '';
+    int count = 1;
+
+    for (int i = 1; i < upper.length && count < 4; i++) {
+      String c = upper[i];
+      if (!codes.containsKey(c)) continue;
+      String code = codes[c]!;
+
+      if (code != lastCode) {
+        output.write(code);
+        lastCode = code;
+        count++;
+      }
+    }
+
+    while (output.length < 4) {
+      output.write('0');
+    }
+
+    return output.toString();
+  }
+
+  bool containsBadWord(String text) {
+    final words = text.toLowerCase().split(RegExp(r'\W+'));
+
+    for (var word in words) {
+      if (badWords.contains(word)) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  // Check both name and description
+  bool containsBadWordsInNameOrDescription(String name, String description) {
+    return containsBadWord(name) || containsBadWord(description);
+  }
+
   @override
   void initState() {
     super.initState();
+    badWordsSoundex = {for (var w in badWords) w: soundex(w)};
     fetchProjectsAndOwners();
   }
 
-  bool isLoading = false;
-  Future<void> fetchProjectsAndOwners([String? name]) async {
+  Future<void> fetchProjectsAndOwners() async {
     try {
+      setState(() {
+        _isLoading = true;
+      });
       final query = FirebaseFirestore.instance.collection('projects');
       final snapshot = await query.where('user_id', isEqualTo: user!.uid).get();
 
@@ -49,14 +172,6 @@ class _ImageUploaderPageState extends State<Post> {
           continue;
         }
 
-        if (name != null &&
-            !projectData['name']
-                .toString()
-                .toLowerCase()
-                .contains(name.toLowerCase())) {
-          continue;
-        }
-
         loadedProjects.add({
           'id': doc.id,
           ...projectData,
@@ -65,26 +180,50 @@ class _ImageUploaderPageState extends State<Post> {
 
       setState(() {
         projects = loadedProjects;
+        filteredProjects = loadedProjects;
         _isLoading = false;
       });
     } catch (e) {
       setState(() {
         _isLoading = false;
       });
+      print('Error fetching projects: $e');
     }
+  }
+
+  void filterProjects(String query) {
+    List<Map<String, dynamic>> tempList = projects.where((project) {
+      final name = project['name']?.toString().toLowerCase() ?? '';
+      final description =
+          project['description']?.toString().toLowerCase() ?? '';
+      final search = query.toLowerCase();
+
+      // Filter by name OR description containing the query
+      return name.contains(search) || description.contains(search);
+    }).toList();
+
+    setState(() {
+      filteredProjects = tempList;
+      selectedProject = null;
+    });
   }
 
   Future<void> _pickImage() async {
     final pickedFile = await _picker.pickImage(source: ImageSource.gallery);
     if (pickedFile != null) {
-      setState(() {
-        _selectedImages.add(File(pickedFile.path));
-      });
+      if (_selectedImages.length < 6) {
+        setState(() {
+          _selectedImages.add(File(pickedFile.path));
+        });
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Maximum 6 images allowed')),
+        );
+      }
     }
   }
 
   Future<void> _uploadImageToFirebase() async {
-    final user = FirebaseAuth.instance.currentUser;
     if (user == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Please log in to upload.')),
@@ -92,10 +231,28 @@ class _ImageUploaderPageState extends State<Post> {
       return;
     }
 
-    if (_selectedImages.isEmpty || _projectNameController.text.isEmpty) {
+    if (_selectedImages.isEmpty ||
+        _projectNameController.text.isEmpty ||
+        _projectDescriptionController.text.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-            content: Text('Please select images and enter a post name.')),
+            content: Text(
+                'Please select images and enter post name and description.')),
+      );
+      return;
+    }
+
+    if (selectedProject == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please select a project.')),
+      );
+      return;
+    }
+
+    if (containsBadWordsInNameOrDescription(
+        _projectNameController.text, _projectDescriptionController.text)) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Post contains inappropriate words.')),
       );
       return;
     }
@@ -142,8 +299,7 @@ class _ImageUploaderPageState extends State<Post> {
   }
 
   Future<void> _saveProjectDetailsToFirestore(List<String> imageUrls) async {
-    final user = FirebaseAuth.instance.currentUser;
-    int PostNumber = await getNextPostNumberForUser(user?.uid);
+    int postNumber = await getNextPostNumberForUser(user?.uid);
 
     await FirebaseFirestore.instance.collection('post').add({
       'Adminacceptance': false,
@@ -152,9 +308,18 @@ class _ImageUploaderPageState extends State<Post> {
       'description': _projectDescriptionController.text.trim(),
       'image_urls': imageUrls,
       'created_at': FieldValue.serverTimestamp(),
-      'postNumber': PostNumber,
+      'postNumber': postNumber,
       'projectNumber': selectedProject!['projectNumber']
     });
+  }
+
+  Future<int> getNextPostNumberForUser(String? userId) async {
+    final querySnapshot = await FirebaseFirestore.instance
+        .collection('post')
+        .where('user_id', isEqualTo: userId)
+        .get();
+
+    return querySnapshot.docs.length + 1;
   }
 
   @override
@@ -193,215 +358,175 @@ class _ImageUploaderPageState extends State<Post> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       const Text(
-                        "Upload Post Images",
+                        'Project Name',
                         style: TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                          color: Color(0xff2F7E43),
-                        ),
+                            fontWeight: FontWeight.bold, fontSize: 15),
                       ),
-                      const SizedBox(height: 10),
-                      GestureDetector(
-                        onTap: _pickImage,
-                        child: Container(
-                          height: screenHeight * 0.25,
-                          decoration: BoxDecoration(
-                            borderRadius: BorderRadius.circular(15),
-                            color: _selectedImages.isNotEmpty
-                                ? null
-                                : Colors.grey[200],
-                            image: _selectedImages.isNotEmpty
-                                ? DecorationImage(
-                                    image: FileImage(_selectedImages.first),
-                                    fit: BoxFit.cover,
-                                  )
-                                : null,
-                          ),
-                          child: _selectedImages.isEmpty
-                              ? const Center(
-                                  child: Icon(
-                                    Icons.add_photo_alternate,
-                                    color: Color(0xff2F7E43),
-                                    size: 60,
-                                  ),
-                                )
-                              : null,
-                        ),
-                      ),
-                      const SizedBox(height: 10),
-                      GridView.builder(
-                        shrinkWrap: true,
-                        physics: const NeverScrollableScrollPhysics(),
-                        gridDelegate:
-                            const SliverGridDelegateWithFixedCrossAxisCount(
-                          crossAxisCount: 3,
-                          crossAxisSpacing: 8,
-                          mainAxisSpacing: 8,
-                          childAspectRatio: 1,
-                        ),
-                        itemCount: _selectedImages.length < 6
-                            ? _selectedImages.length + 1
-                            : _selectedImages.length,
-                        itemBuilder: (context, index) {
-                          if (index == _selectedImages.length &&
-                              _selectedImages.length < 6) {
-                            return GestureDetector(
-                              onTap: _pickImage,
-                              child: Container(
-                                decoration: BoxDecoration(
-                                  borderRadius: BorderRadius.circular(10),
-                                  color: Colors.grey[200],
-                                ),
-                                child: const Center(
-                                  child: Icon(
-                                    Icons.add,
-                                    color: Color(0xff2F7E43),
-                                    size: 40,
-                                  ),
-                                ),
-                              ),
-                            );
-                          }
-                          return ClipRRect(
-                            borderRadius: BorderRadius.circular(10),
-                            child: Image.file(
-                              _selectedImages[index],
-                              fit: BoxFit.cover,
-                            ),
-                          );
-                        },
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-              const SizedBox(height: 20),
-              Card(
-                elevation: 6,
-                shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(15)),
-                color: Colors.white,
-                child: Padding(
-                  padding: const EdgeInsets.all(16.0),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text(
-                        "Post Details",
-                        style: TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                          color: Color(0xff2F7E43),
-                        ),
-                      ),
-                      const SizedBox(height: 10),
-                      TextFormField(
+                      const SizedBox(height: 5),
+                      TextField(
                         controller: _projectNameController,
+                        maxLength: 35,
                         decoration: InputDecoration(
                           filled: true,
-                          fillColor: Colors.grey[100],
-                          labelText: "Post Display Name",
-                          labelStyle: const TextStyle(color: Color(0xff2F7E43)),
+                          fillColor: Colors.white,
                           border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(10),
-                            borderSide: BorderSide.none,
-                          ),
+                              borderRadius: BorderRadius.circular(8),
+                              borderSide: BorderSide.none),
+                          hintText: 'Enter the post name',
                         ),
                       ),
-                      const SizedBox(height: 10),
-                      TextFormField(
+                      const SizedBox(height: 15),
+                      const Text(
+                        'Project Description',
+                        style: TextStyle(
+                            fontWeight: FontWeight.bold, fontSize: 15),
+                      ),
+                      const SizedBox(height: 5),
+                      TextField(
                         controller: _projectDescriptionController,
+                        maxLength: 50,
                         maxLines: 3,
                         decoration: InputDecoration(
                           filled: true,
-                          fillColor: Colors.grey[100],
-                          labelText: "Post Description",
-                          labelStyle: const TextStyle(color: Color(0xff2F7E43)),
+                          fillColor: Colors.white,
                           border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(10),
-                            borderSide: BorderSide.none,
-                          ),
+                              borderRadius: BorderRadius.circular(8),
+                              borderSide: BorderSide.none),
+                          hintText: 'Enter the post description',
                         ),
                       ),
                     ],
                   ),
                 ),
               ),
-              const SizedBox(height: 20),
-              isLoading
-                  ? const Center(
-                      child: CircularProgressIndicator(
-                        color: Color(0xff2F7E43),
-                      ),
-                    )
-                  : DropdownButtonFormField<Map<String, dynamic>>(
-                      value: selectedProject,
-                      items: projects
-                          .map((project) =>
-                              DropdownMenuItem<Map<String, dynamic>>(
-                                value: project,
-                                child:
-                                    Text(project['name'] ?? 'Unnamed Project'),
-                              ))
-                          .toList(),
-                      onChanged: (value) {
-                        setState(() {
-                          selectedProject = value;
-                        });
-                      },
-                      decoration: InputDecoration(
-                        filled: true,
-                        fillColor: Colors.grey[100],
-                        labelText: "Select your Project...",
-                        labelStyle: const TextStyle(color: Color(0xff2F7E43)),
-                        border: OutlineInputBorder(
+              const SizedBox(height: 16),
+              TextField(
+                decoration: InputDecoration(
+                  prefixIcon: const Icon(Icons.search),
+                  hintText: 'Search projects to select',
+                  border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(10)),
+                ),
+                onChanged: (value) {
+                  filterProjects(value);
+                },
+              ),
+              const SizedBox(height: 10),
+              Container(
+                height: 150,
+                decoration: BoxDecoration(
+                  border: Border.all(color: Colors.grey.shade300),
+                  borderRadius: BorderRadius.circular(10),
+                  color: Colors.white,
+                ),
+                child: _isLoading
+                    ? const Center(child: CircularProgressIndicator())
+                    : filteredProjects.isEmpty
+                        ? const Center(child: Text('No projects found'))
+                        : ListView.builder(
+                            itemCount: filteredProjects.length,
+                            itemBuilder: (context, index) {
+                              final project = filteredProjects[index];
+                              final isSelected = selectedProject != null &&
+                                  selectedProject!['id'] == project['id'];
+                              return ListTile(
+                                tileColor:
+                                    isSelected ? Colors.green.shade100 : null,
+                                title: Text(
+                                  project['name'] ?? 'Unnamed Project',
+                                  style: TextStyle(
+                                      fontWeight: isSelected
+                                          ? FontWeight.bold
+                                          : FontWeight.normal),
+                                ),
+                                subtitle: Text(
+                                  project['description'] ?? '',
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                                onTap: () {
+                                  setState(() {
+                                    selectedProject = project;
+                                  });
+                                },
+                              );
+                            },
+                          ),
+              ),
+              const SizedBox(height: 16),
+              Wrap(
+                spacing: 12,
+                runSpacing: 12,
+                children: [
+                  ..._selectedImages.map((imageFile) {
+                    return Stack(
+                      children: [
+                        ClipRRect(
                           borderRadius: BorderRadius.circular(10),
-                          borderSide: BorderSide.none,
+                          child: Image.file(
+                            imageFile,
+                            width: 100,
+                            height: 100,
+                            fit: BoxFit.cover,
+                          ),
                         ),
+                        Positioned(
+                          right: -6,
+                          top: -6,
+                          child: IconButton(
+                            icon: const Icon(Icons.cancel, color: Colors.red),
+                            onPressed: () {
+                              setState(() {
+                                _selectedImages.remove(imageFile);
+                              });
+                            },
+                          ),
+                        ),
+                      ],
+                    );
+                  }),
+                  GestureDetector(
+                    onTap: _pickImage,
+                    child: Container(
+                      width: 100,
+                      height: 100,
+                      decoration: BoxDecoration(
+                        color: Colors.green.shade400,
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: const Center(
+                        child: Icon(Icons.add, color: Colors.white, size: 40),
                       ),
                     ),
-              const SizedBox(height: 20),
-              const SizedBox(height: 20),
-              isLoading
-                  ? const Center(
-                      child: CircularProgressIndicator(
-                        color: Color(0xff2F7E43),
-                      ),
-                    )
-                  : ElevatedButton(
-                      onPressed: () {
-                        if (selectedProject != null) {
-                          isLoading ? null : _uploadImageToFirebase();
-                        }
-                      },
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xff2F7E43),
-                        padding: const EdgeInsets.symmetric(vertical: 12),
-                        shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(10)),
-                      ),
-                      child: const Text(
-                        "Ready to Post?",
-                        style: TextStyle(
-                            fontSize: 16,
-                            color: Colors.white,
-                            fontWeight: FontWeight.bold),
-                      ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 25),
+              SizedBox(
+                height: 60,
+                child: ElevatedButton(
+                  onPressed: isLoading ? null : _uploadImageToFirebase,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xff2F7E43),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(20),
                     ),
-              const SizedBox(height: 20),
+                  ),
+                  child: isLoading
+                      ? const CircularProgressIndicator(
+                          color: Colors.white,
+                        )
+                      : const Text(
+                          'Upload Post',
+                          style: TextStyle(
+                              fontWeight: FontWeight.bold, fontSize: 20),
+                        ),
+                ),
+              ),
             ],
           ),
         ),
       ),
     );
-  }
-
-  Future<int> getNextPostNumberForUser(String? userId) async {
-    final querySnapshot = await FirebaseFirestore.instance
-        .collection('post')
-        .where('user_id', isEqualTo: userId)
-        .get();
-
-    return querySnapshot.docs.length + 1;
   }
 }

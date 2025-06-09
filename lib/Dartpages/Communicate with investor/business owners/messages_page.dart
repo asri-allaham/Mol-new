@@ -345,8 +345,7 @@ class _MessagesPageState extends State<MessagesPage> {
                     size: 20, color: Color.fromARGB(255, 7, 162, 100)),
               ),
               const CircleAvatar(
-                backgroundImage:
-                    AssetImage("lib/img/person1.png"), // get back here
+                backgroundImage: AssetImage("lib/img/person1.png"),
               ),
               const SizedBox(width: 8),
             ],

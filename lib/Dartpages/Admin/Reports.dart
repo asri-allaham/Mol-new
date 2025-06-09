@@ -1,5 +1,4 @@
 import 'dart:math';
-
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 
@@ -31,12 +30,24 @@ class _ReportsPageState extends State<DashBoard> {
     "loading...",
     'any one reading this?'
   ];
+  bool _isButtonDisabled = false;
+
   @override
   void initState() {
     super.initState();
     loadReports();
     loadingMessage =
         investmentMessages[Random().nextInt(investmentMessages.length)];
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+  }
+
+  @override
+  void dispose() {
+    super.dispose();
   }
 
   Future<void> loadReports() async {
@@ -88,9 +99,7 @@ class _ReportsPageState extends State<DashBoard> {
           .collection('reports')
           .get();
 
-      if (reportsSnapshot.docs.isEmpty) {
-        continue; // No reports collection or empty reports
-      }
+      if (reportsSnapshot.docs.isEmpty) continue;
 
       final commentReports = reportsSnapshot.docs
           .where((doc) => doc.data()['reporttype'] == 'comment')
@@ -116,9 +125,6 @@ class _ReportsPageState extends State<DashBoard> {
           'reportCount': projectReports.length,
           'reports': projectReports,
         });
-      }
-      for (var reportDoc in reportsSnapshot.docs) {
-        final reportData = reportDoc.data();
       }
     }
 
@@ -154,12 +160,6 @@ class _ReportsPageState extends State<DashBoard> {
           ),
         ),
       );
-    }
-    Future<DocumentSnapshot> fetchPost(String postId) async {
-      return await FirebaseFirestore.instance
-          .collection('post')
-          .doc(postId)
-          .get();
     }
 
     final postReports = sortedReports['postReports']!;
@@ -258,6 +258,67 @@ class _ReportsPageState extends State<DashBoard> {
                           Text("Type: ${r['reporttype'] ?? 'N/A'}"),
                           Text("User: ${r['userUid'] ?? 'N/A'}"),
                           Text("Time: ${r['timeOfReport']?.toDate() ?? 'N/A'}"),
+                          const SizedBox(height: 8),
+                          ElevatedButton(
+                            onPressed: () {
+                              showDialog(
+                                context: context,
+                                builder: (context) => AlertDialog(
+                                  title: const Text("Reject Confirmation"),
+                                  content: const Text(
+                                      "Rejecting this item will increase its warning count. Are you sure?"),
+                                  actions: [
+                                    TextButton(
+                                      onPressed: () =>
+                                          Navigator.of(context).pop(),
+                                      child: const Text("Cancel"),
+                                    ),
+                                    TextButton(
+                                      onPressed: () async {
+                                        _isButtonDisabled = false;
+                                        Navigator.of(context).pop();
+
+                                        final projectDocRef = FirebaseFirestore
+                                            .instance
+                                            .collection('projects')
+                                            .doc(projectId);
+
+                                        final projectDoc =
+                                            await projectDocRef.get();
+
+                                        if (projectDoc.exists) {
+                                          final projectData = projectDoc.data();
+                                          final currentWarnings =
+                                              projectData?['warningCount'] ?? 0;
+                                          print(projectData?['title']);
+
+                                          await projectDocRef.update({
+                                            'warningCount': currentWarnings + 1,
+                                          });
+                                          final reportsCollection =
+                                              projectDocRef
+                                                  .collection('reports');
+                                          final reportsSnapshot =
+                                              await reportsCollection.get();
+
+                                          for (final doc
+                                              in reportsSnapshot.docs) {
+                                            await doc.reference.delete();
+                                          }
+                                          print(
+                                              'warningCount $currentWarnings');
+                                        } else {
+                                          print('Project not found.');
+                                        }
+                                      },
+                                      child: const Text("Reject"),
+                                    ),
+                                  ],
+                                ),
+                              );
+                            },
+                            child: const Text("Reject"),
+                          ),
                         ],
                       ),
                     );
@@ -266,15 +327,6 @@ class _ReportsPageState extends State<DashBoard> {
               );
             }),
           ],
-          if (postReports.isEmpty &&
-              commentReports.isEmpty &&
-              projectReports.isEmpty)
-            const Center(
-              child: Padding(
-                padding: EdgeInsets.symmetric(vertical: 24),
-                child: Text("No reports found."),
-              ),
-            ),
         ],
       ),
     );

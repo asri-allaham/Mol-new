@@ -38,23 +38,23 @@ class _PlaceholdersState extends State<Placeholders> {
     checkIfFavorited();
   }
 
-  bool isUserInRatings(String currentUserId) {
-    return ratings.any((rating) => (rating['userUid'] ?? '') == currentUserId);
-  }
-
   Future<void> fetchUserData() async {
-    final userId = widget.projectList['user_id'];
-    if (userId != null) {
-      final doc = await FirebaseFirestore.instance
-          .collection('users')
-          .doc(userId)
-          .get();
+    await FirebaseAuth.instance.currentUser?.reload();
+    user = FirebaseAuth.instance.currentUser;
+    final uid = FirebaseAuth.instance.currentUser?.uid;
+    if (uid != null) {
+      final doc =
+          await FirebaseFirestore.instance.collection('users').doc(uid).get();
       if (doc.exists) {
         setState(() {
           _userData = doc.data();
         });
       }
     }
+  }
+
+  bool isUserInRatings(String currentUserId) {
+    return ratings.any((rating) => (rating['userUid'] ?? '') == currentUserId);
   }
 
   Future<String> fetchUsername(String userId) async {
@@ -493,7 +493,8 @@ class _PlaceholdersState extends State<Placeholders> {
                       ),
                     ),
                 if (user?.uid != null)
-                  if (user!.uid == widget.projectList['user_id'])
+                  if (user!.uid == widget.projectList['user_id'] ||
+                      _userData!['admin'] == true)
                     Align(
                       alignment: Alignment.centerRight,
                       child: TextButton.icon(
@@ -647,8 +648,7 @@ class _PlaceholdersState extends State<Placeholders> {
                                           int ratingNumber =
                                               ratingItem['Starnumber'] ?? 0;
                                           final comment =
-                                              ratingItem['comment'] ??
-                                                  ""; //2222222
+                                              ratingItem['comment'] ?? "";
 
                                           return Column(
                                             crossAxisAlignment: isCurrentUser
@@ -658,7 +658,9 @@ class _PlaceholdersState extends State<Placeholders> {
                                               Row(
                                                 mainAxisSize: MainAxisSize.min,
                                                 children: [
-                                                  if (isCurrentUser) ...[
+                                                  if (isCurrentUser ||
+                                                      _userData!['admin'] ==
+                                                          true) ...[
                                                     SizedBox(
                                                       width: 40,
                                                       height: 40,

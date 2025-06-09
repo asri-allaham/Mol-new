@@ -903,7 +903,7 @@ class _HomepageState extends State<Homepage> {
         Widget getPageForIndex(int index) {
           if (index == 1) {
             if (user != null && (_userData?['admin'] ?? false)) {
-              return Admintapssystem();
+              return Admintapssystem(projects, posts);
             }
             return user != null ? BottomTabs() : const LoginPage();
           } else if (index == 2) {

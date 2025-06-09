@@ -23,6 +23,127 @@ class _ImageUploaderPageState extends State<ProjectAdd> {
   final TextEditingController _projectDescriptionController =
       TextEditingController();
   String? _selectedCategory;
+  final List<String> badWords = [
+    'damn',
+    'hell',
+    'crap',
+    'shit',
+    'fuck',
+    'bitch',
+    'asshole',
+    'bastard',
+    'dick',
+    'piss',
+    'darn',
+    'cock',
+    'pussy',
+    'fag',
+    'slut',
+    'whore',
+    'nigger',
+    'cunt',
+    'bollocks',
+    'bugger',
+    'bloody',
+    'arse',
+    'twat',
+    'prick',
+    'motherfucker',
+    'son of a bitch',
+    'goddamn',
+    'dammit',
+    'shithead',
+    'douche',
+    'jerk',
+    'crappy',
+    'fucker',
+    'wanker',
+    'chink',
+    'spic',
+    'retard',
+    'kike',
+    'dyke',
+    'slutty',
+    'twat',
+    'shitface',
+    'faggy',
+    'ass',
+    'bimbo',
+    'shitbag',
+    'douchebag'
+  ];
+  late final Map<String, String> badWordsSoundex;
+
+  String soundex(String s) {
+    if (s.isEmpty) return "";
+
+    final Map<String, String> codes = {
+      'b': '1',
+      'f': '1',
+      'p': '1',
+      'v': '1',
+      'c': '2',
+      'g': '2',
+      'j': '2',
+      'k': '2',
+      'q': '2',
+      's': '2',
+      'x': '2',
+      'z': '2',
+      'd': '3',
+      't': '3',
+      'l': '4',
+      'm': '5',
+      'n': '5',
+      'r': '6',
+    };
+
+    String upper = s.toLowerCase();
+    String firstLetter = upper[0].toUpperCase();
+    StringBuffer output = StringBuffer(firstLetter);
+
+    String lastCode = codes[upper[0]] ?? '';
+    int count = 1;
+
+    for (int i = 1; i < upper.length && count < 4; i++) {
+      String c = upper[i];
+      if (!codes.containsKey(c)) continue;
+      String code = codes[c]!;
+
+      if (code != lastCode) {
+        output.write(code);
+        lastCode = code;
+        count++;
+      }
+    }
+
+    while (output.length < 4) {
+      output.write('0');
+    }
+
+    return output.toString();
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    badWordsSoundex = {for (var w in badWords) w: soundex(w)};
+  }
+
+  bool containsBadWord(String text) {
+    final words = text.toLowerCase().split(RegExp(r'\W+'));
+
+    for (var word in words) {
+      if (badWords.contains(word)) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  bool containsBadWordsInNameOrDescription(String name, String description) {
+    return containsBadWord(name) || containsBadWord(description);
+  }
 
   final List<String> _categories = [
     'Technology',
@@ -56,6 +177,13 @@ class _ImageUploaderPageState extends State<ProjectAdd> {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
             content: Text('Please select images and enter a project name.')),
+      );
+      return;
+    }
+    if (containsBadWordsInNameOrDescription(
+        _projectNameController.text, _projectDescriptionController.text)) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Project contains inappropriate words.')),
       );
       return;
     }
