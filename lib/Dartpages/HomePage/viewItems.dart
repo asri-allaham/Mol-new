@@ -1,3 +1,4 @@
+import 'package:Mollni/Dartpages/HomePage/placeholders.dart';
 import 'package:flutter/material.dart';
 
 class Viewitems extends StatefulWidget {
@@ -27,20 +28,33 @@ class _ViewitemsState extends State<Viewitems> {
             : null;
 
         return Card(
-          shape:
-              RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
           elevation: 2,
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               Expanded(
-                child: ClipRRect(
-                  borderRadius:
-                      const BorderRadius.vertical(top: Radius.circular(12)),
-                  child: imageUrl != null
-                      ? Image.network(imageUrl, fit: BoxFit.cover)
-                      : Image.asset('lib/img/placeholder.png',
-                          fit: BoxFit.cover),
+                child: InkWell(
+                  onTap: () {
+                    Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (context) => Placeholders(project),
+                      ),
+                    );
+                  },
+                  child: ClipRRect(
+                    borderRadius: const BorderRadius.vertical(
+                      top: Radius.circular(12),
+                    ),
+                    child: imageUrl != null
+                        ? Image.network(imageUrl, fit: BoxFit.cover)
+                        : Image.asset(
+                            'lib/img/placeholder.png',
+                            fit: BoxFit.cover,
+                          ),
+                  ),
                 ),
               ),
               Padding(

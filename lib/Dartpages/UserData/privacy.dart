@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../simple_functions/col.dart';
+import '../../simple_functions/col.dart';
 
 class privacy extends StatefulWidget {
   const privacy({super.key});

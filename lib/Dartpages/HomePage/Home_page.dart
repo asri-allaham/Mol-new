@@ -1,16 +1,19 @@
-import 'package:MOLLILE/Dartpages/CustomWidget/SearchBox.dart';
-import 'package:MOLLILE/Dartpages/HomePage/placeholders.dart';
-import 'package:MOLLILE/project%20add%20post/ProjectAdd.dart';
-import 'package:MOLLILE/Dartpages/HomePage/viewItems.dart';
-import 'package:MOLLILE/Dartpages/UserData/profile_information.dart';
-import 'package:MOLLILE/Dartpages/sighUpIn/LoginPage.dart';
-import 'package:MOLLILE/project%20add%20post/TapsSystem.dart';
+import 'dart:math';
+
+import 'package:Mollni/Dartpages/Communicate%20with%20investor/business%20owners/messages_page.dart';
+import 'package:Mollni/Dartpages/CustomWidget/SearchBox.dart';
+import 'package:Mollni/Dartpages/HomePage/placeholders.dart';
+import 'package:Mollni/Dartpages/HomePage/viewItems.dart';
+import 'package:Mollni/Dartpages/UserData/profile_information.dart';
+import 'package:Mollni/Dartpages/project%20add%20post/TapsSystem.dart';
+import 'package:Mollni/Dartpages/sighUpIn/LoginPage.dart';
+import 'package:Mollni/simple_functions/star_menu_button.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-
-import '../Communicate with investor/business owners/masseges.dart';
+import 'package:flutter_chat_ui/flutter_chat_ui.dart';
+import 'package:Mollni/Dartpages/Admin/AdminTapsSystem.dart';
 
 class Homepage extends StatefulWidget {
   const Homepage({super.key});
@@ -29,6 +32,18 @@ class _HomepageState extends State<Homepage> {
     'Finance',
     'Other'
   ];
+  final List<String> investmentMessages = [
+    "Analyzing stocks...",
+    "Building your empire...",
+    "Loading assets...",
+    "Scanning markets...",
+    "Getting insights...",
+    "Smart moves ahead...",
+    "Optimizing growth...",
+    "Risk check...",
+    "Preparing tools...",
+    "Wealth loading..."
+  ];
 
   int _currentPopularImageIndex = 0;
   int _currentInvestmentImageIndex = 0;
@@ -38,14 +53,16 @@ class _HomepageState extends State<Homepage> {
 
   User? user;
   Map<String, dynamic>? _userData;
-  List<Map<String, dynamic>> projects = [];
+  List<Map<String, dynamic>> projects = [], posts = [];
   bool _isLoading = true;
   String currentPage = "Home";
+
   @override
   void initState() {
     super.initState();
     fetchUserData();
     fetchProjectsAndOwners();
+    fetchPostsAndOwners();
   }
 
   Future<void> fetchUserData() async {
@@ -63,6 +80,21 @@ class _HomepageState extends State<Homepage> {
     }
   }
 
+  Map<String, dynamic>? getProjectFromLocalList(
+      String userId, int projectNumber) {
+    try {
+      return projects.firstWhere(
+        (project) =>
+            project['user_id'] == userId &&
+            project['projectNumber'] == projectNumber,
+        orElse: () => {},
+      );
+    } catch (e) {
+      print('Error finding project locally: $e');
+      return null;
+    }
+  }
+
   Future<void> fetchProjectsAndOwners([String? category, String? name]) async {
     try {
       final query = FirebaseFirestore.instance.collection('projects');
@@ -75,6 +107,11 @@ class _HomepageState extends State<Homepage> {
 
       for (var doc in snapshot.docs) {
         final projectData = doc.data();
+
+        final adminAccepted = projectData['Adminacceptance'] ?? false;
+        if (adminAccepted != true) {
+          continue;
+        }
 
         if (name != null &&
             !projectData['name']
@@ -125,37 +162,97 @@ class _HomepageState extends State<Homepage> {
     }
   }
 
+  Future<void> fetchPostsAndOwners([String? category, String? name]) async {
+    try {
+      final query = FirebaseFirestore.instance.collection('post');
+      final snapshot = await query.get();
+
+      List<Map<String, dynamic>> loadedPosts = [];
+      List<Future<DocumentSnapshot>> userFutures = [];
+
+      for (var doc in snapshot.docs) {
+        final postsData = doc.data();
+        final userId = postsData['user_id'];
+        final adminAccepted = postsData['Adminacceptance'] ?? false;
+        if (adminAccepted != true) {
+          continue;
+        }
+        userFutures.add(
+          FirebaseFirestore.instance.collection('users').doc(userId).get(),
+        );
+
+        loadedPosts.add(postsData);
+      }
+
+      final userSnapshots = await Future.wait(userFutures);
+
+      for (int i = 0; i < loadedPosts.length; i++) {
+        final userSnapshot = userSnapshots[i];
+        final ownerImage = userSnapshot.exists
+            ? (userSnapshot.data() as Map<String, dynamic>)['urlImage'] ?? ''
+            : '';
+
+        loadedPosts[i]['owner_image'] = ownerImage;
+      }
+
+      loadedPosts.sort((a, b) {
+        int nameCmp = a['name'].compareTo(b['name']);
+        if (nameCmp != 0) return nameCmp;
+        int descCmp = a['description'].compareTo(b['description']);
+        if (descCmp != 0) return descCmp;
+        return a['investment_amount'].compareTo(b['investment_amount']);
+      });
+
+      setState(() {
+        posts = loadedPosts;
+        _isLoading = false;
+      });
+
+      print("✅ Projects filtered by name '${name ?? "All"}' loaded!");
+    } catch (e) {
+      setState(() {
+        _isLoading = false;
+      });
+      print("❌ Error fetching projects: $e");
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     if (_isLoading) {
+      final String randomMessage =
+          investmentMessages[Random().nextInt(investmentMessages.length)];
       return Scaffold(
         body: Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              const CircularProgressIndicator(),
-              if (user == null)
-                const Padding(
-                  padding: EdgeInsets.only(top: 20),
-                  child: Text(
-                    "will be there in no time...",
-                    style: TextStyle(color: Colors.blue),
+          child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
+            const CircularProgressIndicator(
+              color: Colors.green,
+            ),
+            if (user == null)
+              Padding(
+                padding: const EdgeInsets.only(top: 20),
+                child: Text(
+                  randomMessage,
+                  style: const TextStyle(
+                    color: Colors.blue,
+                    fontWeight: FontWeight.w500,
+                    fontSize: 16,
                   ),
+                  textAlign: TextAlign.center,
                 ),
-            ],
-          ),
+              ),
+          ]),
         ),
       );
     }
-
+    bool isadmin = false;
+    if (_userData?['admin'] == true) isadmin = true;
     return Scaffold(
-      resizeToAvoidBottomInset: false,
       backgroundColor: const Color(0xffECECEC),
       body: Stack(
         children: [
           Padding(
-            padding: EdgeInsets.only(
-                top: MediaQuery.of(context).size.height * 0.035, bottom: 60),
+            padding: const EdgeInsets.only(top: 180, bottom: 60),
             child: ListView(
               children: [
                 const SizedBox(height: 20),
@@ -184,7 +281,6 @@ class _HomepageState extends State<Homepage> {
               ],
             ),
           ),
-          //here
           _buildHeader(),
           Positioned(
             left: 0,
@@ -213,7 +309,10 @@ class _HomepageState extends State<Homepage> {
                 mainAxisAlignment: MainAxisAlignment.spaceAround,
                 children: [
                   _buildNavItem(Icons.home, 0),
-                  _buildNavItem(Icons.add, 1),
+                  if (isadmin) ...[
+                    _buildNavItem(Icons.admin_panel_settings, 1),
+                  ] else
+                    _buildNavItem(Icons.add, 1),
                   _buildNavItem(Icons.message, 2),
                   _buildNavItem(Icons.person, 3),
                 ],
@@ -230,46 +329,266 @@ class _HomepageState extends State<Homepage> {
       padding: const EdgeInsets.all(10),
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
-      itemCount: projects.length,
+      itemCount: posts.length,
       gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 1,
+        crossAxisCount: 2,
         crossAxisSpacing: 10,
         mainAxisSpacing: 10,
-        childAspectRatio: 0.8,
+        childAspectRatio: 0.72,
       ),
       itemBuilder: (ctx, index) {
-        final project = projects[index];
-        final imageUrl = (project['image_urls'] as List).isNotEmpty
-            ? project['image_urls'][0]
+        final post = posts[index];
+        final imageUrl = (post['image_urls'] as List).isNotEmpty
+            ? post['image_urls'][0]
             : null;
+        final ownerImage = post['owner_image'] ?? 'lib/img/person1.png';
+        final dis = post['description'] ?? '';
 
         return Card(
           shape:
-              RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-          elevation: 2,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Expanded(
-                child: ClipRRect(
-                  borderRadius:
-                      const BorderRadius.vertical(top: Radius.circular(12)),
-                  child: imageUrl != null
-                      ? Image.network(imageUrl, fit: BoxFit.cover)
-                      : Image.asset('lib/img/placeholder.png',
-                          fit: BoxFit.cover),
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+          elevation: 4,
+          shadowColor: Colors.black.withOpacity(0.1),
+          child: Padding(
+            padding: const EdgeInsets.all(8.0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Expanded(
+                  child: Stack(
+                    alignment: Alignment.bottomLeft,
+                    children: [
+                      InkWell(
+                        onTap: () {
+                          Map<String, dynamic> Project;
+                          Project = getProjectFromLocalList(
+                              post['user_id'], post['projectNumber'])!;
+
+                          Navigator.of(context).push(MaterialPageRoute(
+                              builder: (context) => Placeholders(Project)));
+                        },
+                        child: ClipRRect(
+                          borderRadius: const BorderRadius.vertical(
+                              top: Radius.circular(15)),
+                          child: imageUrl != null
+                              ? Container(
+                                  decoration: BoxDecoration(
+                                    boxShadow: [
+                                      BoxShadow(
+                                        color: Colors.black26,
+                                        blurRadius: 6,
+                                        offset: Offset(0, 3),
+                                      ),
+                                    ],
+                                  ),
+                                  child: Image.network(
+                                    imageUrl,
+                                    fit: BoxFit.cover,
+                                    width: double.infinity,
+                                    height: double.infinity,
+                                  ),
+                                )
+                              : Image.asset(
+                                  'lib/img/placeholder.png',
+                                  fit: BoxFit.cover,
+                                ),
+                        ),
+                      ),
+                      Positioned(
+                        bottom: 8,
+                        left: 8,
+                        child: Container(
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            border: Border.all(color: Colors.white, width: 2),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black26,
+                                blurRadius: 4,
+                                offset: Offset(0, 2),
+                              ),
+                            ],
+                          ),
+                          child: ClipOval(
+                            child: Image.network(
+                              ownerImage,
+                              width: 25,
+                              height: 25,
+                              fit: BoxFit.cover,
+                              errorBuilder: (context, error, stackTrace) {
+                                return Image.asset(
+                                  'lib/img/person1.png',
+                                  width: 25,
+                                  height: 25,
+                                  fit: BoxFit.cover,
+                                );
+                              },
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
-              ),
-              Padding(
-                padding: const EdgeInsets.all(8),
-                child: Text(
-                  project['name'] ?? 'No Name',
-                  style: const TextStyle(fontWeight: FontWeight.bold),
-                  maxLines: 1,
+                const SizedBox(height: 8),
+                Text(
+                  post['name'] ?? 'No Name',
+                  style: const TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 16,
+                    color: Colors.black87,
+                  ),
+                  maxLines: 2,
                   overflow: TextOverflow.ellipsis,
                 ),
-              ),
-            ],
+                const SizedBox(height: 6),
+                Text(
+                  dis,
+                  style: TextStyle(
+                    fontSize: 13,
+                    color: Colors.grey[700],
+                  ),
+                  maxLines: 3,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                Align(
+                  alignment: Alignment(1, .6),
+                  child: (post['user_id'] == user?.uid)
+                      ? Padding(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 8, vertical: 4),
+                          child: StarMenuButton(
+                            items: [
+                              Container(
+                                padding: EdgeInsets.symmetric(
+                                    horizontal: 16, vertical: 8),
+                                decoration: BoxDecoration(
+                                  color: Color.fromARGB(255, 103, 90, 89),
+                                  borderRadius: BorderRadius.circular(8),
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: Colors.black.withOpacity(0.2),
+                                      offset: Offset(0, 2),
+                                      blurRadius: 4,
+                                    ),
+                                  ],
+                                ),
+                                child: Text(
+                                  "Remove",
+                                  style: TextStyle(
+                                    color: Colors.white,
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 16,
+                                    letterSpacing: 1.2,
+                                  ),
+                                ),
+                              ),
+                              Container(
+                                padding: EdgeInsets.symmetric(
+                                    horizontal: 16, vertical: 8),
+                                decoration: BoxDecoration(
+                                  color: Color.fromARGB(255, 103, 90, 89),
+                                  borderRadius: BorderRadius.circular(8),
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: Colors.black.withOpacity(0.2),
+                                      offset: Offset(0, 2),
+                                      blurRadius: 4,
+                                    ),
+                                  ],
+                                ),
+                                child: Text(
+                                  "close",
+                                  style: TextStyle(
+                                    color: Colors.white,
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 16,
+                                    letterSpacing: 1.2,
+                                  ),
+                                ),
+                              ),
+                            ],
+                            onItemTapped: (index) {
+                              if (index == 0) {
+                                deletePost(
+                                  context: (context),
+                                  postNumber: post['postNumber'],
+                                );
+                                setState(() {
+                                  posts.removeWhere((p) =>
+                                      p['postNumber'] == post['postNumber']);
+                                });
+                              } else {
+                                if (index == 1) {}
+                              }
+                            },
+                          ),
+                        )
+                      : Padding(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 8, vertical: 4),
+                          child: StarMenuButton(
+                            items: [
+                              Container(
+                                padding: EdgeInsets.symmetric(
+                                    horizontal: 16, vertical: 8),
+                                decoration: BoxDecoration(
+                                  color: Color.fromARGB(255, 103, 90, 89),
+                                  borderRadius: BorderRadius.circular(8),
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: Colors.black.withOpacity(0.2),
+                                      offset: Offset(0, 2),
+                                      blurRadius: 4,
+                                    ),
+                                  ],
+                                ),
+                                child: Text(
+                                  "Report",
+                                  style: TextStyle(
+                                    color: Colors.white,
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 16,
+                                    letterSpacing: 1.2,
+                                  ),
+                                ),
+                              ),
+                              Container(
+                                padding: EdgeInsets.symmetric(
+                                    horizontal: 16, vertical: 8),
+                                decoration: BoxDecoration(
+                                  color: Color.fromARGB(255, 103, 90, 89),
+                                  borderRadius: BorderRadius.circular(8),
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: Colors.black.withOpacity(0.2),
+                                      offset: Offset(0, 2),
+                                      blurRadius: 4,
+                                    ),
+                                  ],
+                                ),
+                                child: Text(
+                                  "close",
+                                  style: TextStyle(
+                                    color: Colors.white,
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 16,
+                                    letterSpacing: 1.2,
+                                  ),
+                                ),
+                              ),
+                            ],
+                            onItemTapped: (index) {
+                              if (index == 0) {
+                                _reportWithReason(post['user_id'],
+                                    post['postNumber'], 'Post');
+                              }
+                            },
+                          ),
+                        ),
+                ),
+              ],
+            ),
           ),
         );
       },
@@ -282,13 +601,19 @@ class _HomepageState extends State<Homepage> {
         const SizedBox(width: 23),
         Text(
           title,
-          style: const TextStyle(fontSize: 18, color: Color(0xff012113)),
+          style: TextStyle(
+              fontSize: 20,
+              color: Color(0xff012113),
+              fontWeight: FontWeight.bold),
         ),
         const Spacer(),
         InkWell(
           child: Text(
             "view_all".tr(),
-            style: const TextStyle(fontSize: 15, color: Color(0xff54826D)),
+            style: TextStyle(
+                fontSize: 16,
+                color: Color(0xff54826D),
+                fontWeight: FontWeight.w500),
           ),
           onTap: () {
             Navigator.of(context).push(
@@ -296,7 +621,7 @@ class _HomepageState extends State<Homepage> {
                 fullscreenDialog: true,
                 builder: (context) => Scaffold(
                   appBar: AppBar(
-                    title: Text("All Projects"),
+                    title: Text("All Projects", style: TextStyle(fontSize: 20)),
                   ),
                   body: Viewitems(projects: projects),
                 ),
@@ -312,7 +637,7 @@ class _HomepageState extends State<Homepage> {
   Widget _buildImageSlider(List<Map<String, dynamic>> projectList,
       int currentIndex, Function(int) onChanged, int length) {
     return SizedBox(
-      height: 300,
+      height: 320,
       child: PageView.builder(
         itemCount: projectList.length > 3 ? length : projectList.length,
         scrollDirection: Axis.horizontal,
@@ -321,36 +646,19 @@ class _HomepageState extends State<Homepage> {
           final imageUrlList = projectList[index]['image_urls'];
           final imageUrl = (imageUrlList is List && imageUrlList.isNotEmpty)
               ? imageUrlList[0]
-              : null;
+              : null; //here
+          final ownerImage =
+              projectList[index]['owner_image'] ?? 'lib/img/person1.png';
 
           final screenWidth = MediaQuery.of(context).size.width;
-          final imageSize = screenWidth * 1;
+          final imageSize = screenWidth * 0.9;
 
           return Center(
             child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
+              padding: const EdgeInsets.symmetric(horizontal: 10),
               child: Stack(
                 alignment: Alignment.bottomLeft,
                 children: [
-                  Padding(
-                    padding: const EdgeInsets.all(8.0),
-                    child: ClipOval(
-                      child: projects[index]['owner_image'] != null &&
-                              projects[index]['owner_image'] != ''
-                          ? Image.network(
-                              projects[index]['owner_image'],
-                              fit: BoxFit.cover,
-                              width: 40,
-                              height: 40,
-                            )
-                          : Image.asset(
-                              'lib/img/person1.png',
-                              fit: BoxFit.cover,
-                              width: 40,
-                              height: 40,
-                            ),
-                    ),
-                  ),
                   InkWell(
                     onTap: () {
                       Navigator.of(context).push(MaterialPageRoute(
@@ -358,20 +666,39 @@ class _HomepageState extends State<Homepage> {
                               Placeholders(projectList[index])));
                     },
                     child: ClipRRect(
-                      borderRadius: BorderRadius.circular(20),
+                      borderRadius: BorderRadius.circular(25),
                       child: imageUrl != null && imageUrl != ''
                           ? Image.network(
                               imageUrl,
                               fit: BoxFit.cover,
                               width: imageSize,
-                              height: imageSize,
+                              height: imageSize * 0.8,
                             )
                           : Image.asset(
                               'lib/img/placeholder.png',
                               fit: BoxFit.cover,
                               width: imageSize,
-                              height: imageSize,
+                              height: imageSize * 0.8,
                             ),
+                    ),
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.all(10.0),
+                    child: ClipOval(
+                      child: Image.network(
+                        ownerImage,
+                        fit: BoxFit.cover,
+                        width: 45,
+                        height: 45,
+                        errorBuilder: (context, error, stackTrace) {
+                          return Image.asset(
+                            'lib/img/person1.png',
+                            fit: BoxFit.cover,
+                            width: 45,
+                            height: 45,
+                          );
+                        },
+                      ),
                     ),
                   ),
                 ],
@@ -385,44 +712,51 @@ class _HomepageState extends State<Homepage> {
 
   Widget _buildInfoRow(int currentIndex, int totalImages) {
     if (projects.isEmpty) {
-      return Center(child: Text("no_projects_found".tr()));
+      return Center(
+          child:
+              Text("no_projects_found".tr(), style: TextStyle(fontSize: 16)));
     }
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20),
       child: Row(
         children: [
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                projects[currentIndex]['name'],
-                style: const TextStyle(fontSize: 15, color: Color(0xff000000)),
-              ),
-            ],
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  projects[currentIndex]['name'] ?? 'No Name',
+                  style: TextStyle(
+                      fontSize: 18,
+                      color: Color(0xff000000),
+                      fontWeight: FontWeight.bold),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                SizedBox(height: 5),
+                Text(
+                  "Investment: \$${projects[currentIndex]['investment_amount'] ?? 'N/A'}",
+                  style: TextStyle(fontSize: 14, color: Color(0xff54826D)),
+                ),
+              ],
+            ),
           ),
-          const SizedBox(width: 50),
           Row(
             children: List.generate(totalImages, (index) {
               return Container(
-                width: 8,
-                height: 8,
-                margin: const EdgeInsets.symmetric(horizontal: 3),
+                width: 10,
+                height: 10,
+                margin: const EdgeInsets.symmetric(horizontal: 4),
                 decoration: BoxDecoration(
                   color: currentIndex == index
-                      ? const Color(0xff012113)
-                      : const Color(0xffD9D9D9),
-                  borderRadius: BorderRadius.circular(100),
+                      ? Color(0xff012113)
+                      : Color(0xffD9D9D9),
+                  borderRadius: BorderRadius.circular(5),
                 ),
               );
             }),
           ),
-          const Spacer(),
-          // Text(
-          //   "75%",
-          //   style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
-          // ),
-          // const SizedBox(width: 50),
         ],
       ),
     );
@@ -430,9 +764,9 @@ class _HomepageState extends State<Homepage> {
 
   Widget _buildHeader() {
     return Container(
-      height: 140,
+      height: 180,
       width: double.infinity,
-      decoration: const BoxDecoration(
+      decoration: BoxDecoration(
         gradient: LinearGradient(
           begin: Alignment.topCenter,
           end: Alignment.bottomCenter,
@@ -444,106 +778,112 @@ class _HomepageState extends State<Homepage> {
             Color(0xff54826D)
           ],
         ),
+        borderRadius: const BorderRadius.only(
+          bottomLeft: Radius.circular(30),
+          bottomRight: Radius.circular(30),
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black26,
+            blurRadius: 10,
+            offset: Offset(0, 2),
+          ),
+        ],
       ),
       child: Column(
         children: [
+          SizedBox(
+            height: 12,
+          ),
           Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 10),
-            child: InkWell(
-              onTap: () {},
-              child: Column(
-                children: [
-                  Padding(
-                    padding: EdgeInsets.only(
-                        left: MediaQuery.of(context).size.height * 0.035,
-                        top: MediaQuery.of(context).size.height * 0.015),
-                    child: Row(
-                      children: [
-                        Image.asset(
-                          'lib/img/logo.png',
-                          height: MediaQuery.of(context).size.height * 0.035,
-                          width: MediaQuery.of(context).size.height * 0.035,
-                        ),
-                        user == null
-                            ? ElevatedButton(
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: Colors.transparent,
-                                  shadowColor: Colors.transparent,
-                                  elevation: 0,
-                                  foregroundColor: Colors.black,
-                                ),
-                                onPressed: () {
-                                  Navigator.of(context).push(
-                                    MaterialPageRoute(
-                                        builder: (context) =>
-                                            const LoginPage()),
-                                  );
-                                },
-                                child: Padding(
-                                  padding: EdgeInsets.only(
-                                      left: MediaQuery.of(context).size.height *
-                                          0.22),
-                                  child: const Text(
-                                    "Login",
-                                    style: TextStyle(
-                                        fontSize: 15, color: Colors.white),
-                                  ),
-                                ),
-                              )
-                            : const Text(""),
-                      ],
+            padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 10),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Row(
+                  children: [
+                    Image.asset(
+                      'lib/img/logo.png',
+                      height: 30,
+                      width: 30,
                     ),
-                  ),
-                  Row(
-                    children: [
-                      Padding(
-                        padding: EdgeInsets.only(
-                          left: MediaQuery.of(context).size.height * 0.035,
-                        ),
-                        child: CustomSearchBox(
-                          controller: _searchController,
-                          onChanged: (value) {
-                            fetchProjectsAndOwners(null, value);
-                          },
-                          hintText: "Search by project name",
-                          width: MediaQuery.of(context).size.height * 0.25,
-                        ),
-                      ),
-                    ],
-                  )
-                ],
-              ),
+                    SizedBox(width: 10),
+                    user == null
+                        ? ElevatedButton(
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.transparent,
+                              shadowColor: Colors.transparent,
+                              elevation: 0,
+                              foregroundColor: Colors.white,
+                            ),
+                            onPressed: () {
+                              Navigator.of(context).push(
+                                MaterialPageRoute(
+                                    builder: (context) => const LoginPage()),
+                              );
+                            },
+                            child: Text(
+                              "Login",
+                              style:
+                                  TextStyle(fontSize: 16, color: Colors.white),
+                            ),
+                          )
+                        : Text("Mollni ${user?.displayName ?? ''}",
+                            style: TextStyle(
+                                fontSize: 20,
+                                color: Color(0xff89AE4B),
+                                fontWeight: FontWeight.bold)),
+                  ],
+                ),
+                Icon(Icons.notifications, color: Colors.white, size: 30),
+              ],
             ),
           ),
-          const SizedBox(height: 10),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 15),
+            child: CustomSearchBox(
+              controller: _searchController,
+              onChanged: (value) {
+                fetchProjectsAndOwners(null, value);
+              },
+              hintText: "Search by project name",
+              width: double.infinity,
+            ),
+          ),
+          SizedBox(height: 10),
           SizedBox(
-            height: 24,
+            height: 40,
             child: ListView(
               scrollDirection: Axis.horizontal,
+              padding: EdgeInsets.symmetric(horizontal: 15),
               children: List.generate(6, (index) {
-                return InkWell(
-                  child: Padding(
-                    padding: EdgeInsets.only(
-                      right: MediaQuery.of(context).size.height * 0.01,
-                    ),
+                return Padding(
+                  padding: EdgeInsets.only(right: 10),
+                  child: InkWell(
+                    borderRadius: BorderRadius.circular(20),
                     child: Container(
-                      width: 60,
+                      padding:
+                          EdgeInsets.symmetric(horizontal: 12, vertical: 5),
+                      decoration: BoxDecoration(
+                        color: Color(0xff54826D).withOpacity(0.7),
+                        borderRadius: BorderRadius.circular(20),
+                      ),
                       child: Center(
                         child: Image.asset(
                           'lib/img/img_${index + 1}.png',
-                          width: 26,
-                          height: 24,
+                          width: 30,
+                          height: 30,
                         ),
                       ),
                     ),
+                    onTap: () {
+                      String? selectedCategory = categories[index];
+                      setState(() {
+                        _isLoading = true;
+                      });
+                      fetchProjectsAndOwners(selectedCategory);
+                    },
                   ),
-                  onTap: () {
-                    String? selectedCategory = categories[index];
-                    setState(() {
-                      _isLoading = true;
-                    });
-                    fetchProjectsAndOwners(selectedCategory);
-                  },
                 );
               }),
             ),
@@ -560,36 +900,186 @@ class _HomepageState extends State<Homepage> {
           _selectedIndex = index;
         });
 
-        if (_selectedIndex == 1) {
-          if (user != null) {
-            Navigator.of(context)
-                .push(MaterialPageRoute(builder: (context) => BottomTabs()));
-          } else {
-            Navigator.of(context).push(
-                MaterialPageRoute(builder: (context) => const LoginPage()));
+        Widget getPageForIndex(int index) {
+          if (index == 1) {
+            if (user != null && (_userData?['admin'] ?? false)) {
+              return Admintapssystem();
+            }
+            return user != null ? BottomTabs() : const LoginPage();
+          } else if (index == 2) {
+            return user != null ? MessagesPage() : const LoginPage();
+          } else if (index == 3) {
+            return user != null
+                ? const ProfileInformation()
+                : const LoginPage();
           }
-        } else if (_selectedIndex == 2) {
-          if (user != null) {
-            Navigator.of(context)
-                .push(MaterialPageRoute(builder: (context) => MessagesPage()));
-          } else {
-            Navigator.of(context).push(
-                MaterialPageRoute(builder: (context) => const LoginPage()));
-          }
-        } else if (_selectedIndex == 3) {
-          if (user != null) {
-            Navigator.of(context).push(MaterialPageRoute(
-                builder: (context) => const ProfileInformation()));
-          } else {
-            Navigator.of(context).push(
-                MaterialPageRoute(builder: (context) => const LoginPage()));
-          }
+          return SizedBox();
+        }
+
+        final page = getPageForIndex(_selectedIndex);
+        if (page is! SizedBox) {
+          Navigator.of(context)
+              .push(MaterialPageRoute(builder: (context) => page));
         }
       },
       child: Icon(
         icon,
-        color: Colors.white,
+        color: _selectedIndex == index ? Colors.white : Colors.white70,
       ),
     );
+  }
+
+  Future<void> deletePost({
+    required BuildContext context,
+    required int postNumber,
+  }) async {
+    try {
+      debugPrint(
+          'Deleting post - Number: $postNumber (Type: ${postNumber.runtimeType})');
+      debugPrint('Current user UID: ${user!.uid}');
+
+      final querySnapshot = await FirebaseFirestore.instance
+          .collection('post')
+          .where('postNumber', isEqualTo: postNumber)
+          .where('user_id', isEqualTo: user!.uid)
+          .get();
+
+      final docId = querySnapshot.docs.first.id;
+      debugPrint('Deleting document ID: $docId');
+
+      await FirebaseFirestore.instance.collection('post').doc(docId).delete();
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Post deleted successfully!')),
+      );
+    } catch (e) {
+      debugPrint('Delete error: $e');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error: ${e.toString()}')),
+      );
+    }
+  }
+
+  Future<void> reportProjectIfNotAlreadyReported(BuildContext context,
+      int postNumber, String ownerUserId, String reporttype) async {
+    final TextEditingController reasonController = TextEditingController();
+    final currentUserId = FirebaseAuth.instance.currentUser?.uid;
+
+    if (currentUserId == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text("You must be logged in to report."),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
+    try {
+      final querySnapshot = await FirebaseFirestore.instance
+          .collection('post')
+          .where('postNumber', isEqualTo: postNumber)
+          .where('user_id', isEqualTo: ownerUserId)
+          .get();
+
+      if (querySnapshot.docs.isEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text("error ,not found."),
+            backgroundColor: Colors.red,
+          ),
+        );
+        return;
+      }
+
+      final projectDoc = querySnapshot.docs.first;
+
+      final reportsSnapshot = await projectDoc.reference
+          .collection('reports')
+          .where('userUid', isEqualTo: currentUserId)
+          .where('reporttype', isEqualTo: reporttype)
+          .get();
+
+      if (reportsSnapshot.docs.isNotEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text("You have already reported this!"),
+            backgroundColor: Colors.orange,
+          ),
+        );
+        return;
+      }
+
+      showDialog(
+        context: context,
+        builder: (context) {
+          return AlertDialog(
+            title: const Text("Report Post"),
+            content: TextField(
+              controller: reasonController,
+              decoration: const InputDecoration(
+                hintText: "Enter reason for reporting",
+              ),
+            ),
+            actions: [
+              TextButton(
+                child: const Text("Cancel"),
+                onPressed: () => Navigator.of(context).pop(),
+              ),
+              TextButton(
+                child: const Text("Submit"),
+                onPressed: () async {
+                  final reason = reasonController.text.trim().isEmpty
+                      ? ""
+                      : reasonController.text.trim();
+
+                  Navigator.of(context).pop();
+
+                  try {
+                    await projectDoc.reference.collection('reports').add({
+                      'userUid': currentUserId,
+                      'reason': reason,
+                      'timeOfReport': Timestamp.now(),
+                      'reporttype': reporttype
+                    });
+
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text("Thanks for reporting!"),
+                        backgroundColor: Color.fromARGB(255, 117, 43, 38),
+                      ),
+                    );
+                  } catch (e) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text("Error: $e"),
+                        backgroundColor: Colors.red,
+                      ),
+                    );
+                  }
+                },
+              ),
+            ],
+          );
+        },
+      );
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text("Error: $e"),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+  }
+
+  void _reportWithReason(
+      String userIdOwner, int numberProject, String reporttype) async {
+    try {
+      await reportProjectIfNotAlreadyReported(
+          context, numberProject, userIdOwner, reporttype);
+    } catch (e) {
+      print(e);
+    }
   }
 }

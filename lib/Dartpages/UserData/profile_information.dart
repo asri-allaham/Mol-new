@@ -1,24 +1,22 @@
-import 'package:MOLLILE/Dartpages/Communicate%20with%20investor/business%20owners/masseges.dart';
-import 'package:MOLLILE/Dartpages/HomePage/Home_page.dart';
-import 'package:MOLLILE/project%20add%20post/ProjectAdd.dart';
-import 'package:MOLLILE/Dartpages/sighUpIn/LoginPage.dart';
-import 'package:MOLLILE/Dartpages/sighUpIn/login_state.dart';
-import 'package:MOLLILE/i18n/LanguageScreen.dart';
+import 'package:Mollni/Dartpages/Communicate%20with%20investor/business%20owners/messages_page.dart';
+import 'package:Mollni/Dartpages/HomePage/Home_page.dart';
+import 'package:Mollni/Dartpages/HomePage/favorites.dart';
+import 'package:Mollni/Dartpages/project%20add%20post/ProjectAdd.dart';
+import 'package:Mollni/Dartpages/sighUpIn/LoginPage.dart';
+import 'package:Mollni/Dartpages/sighUpIn/login_state.dart';
+import 'package:Mollni/i18n/LanguageScreen.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:easy_localization/easy_localization.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_chat_ui/flutter_chat_ui.dart';
-// import 'package:flutter_phoenix/flutter_phoenix.dart';
 import 'package:provider/provider.dart';
-// import 'package:shared_preferences/shared_preferences.dart';
-// import 'rowprofile.dart';
 import 'privacy.dart';
 import 'edid_profile.dart';
-import '../simple_functions/Language.dart';
+import '../../simple_functions/Language.dart';
 import 'Notifications.dart';
 import 'profile info display/UIDisplay.dart';
-// import 'package:pages/simple_functions/Language.dart';
 
 class ProfileInformation extends StatefulWidget {
   const ProfileInformation({super.key});
@@ -60,19 +58,36 @@ class _ProfileInformationState extends State<ProfileInformation> {
     final appLang = Provider.of<AppLanguageProvider>(context);
 
     return Scaffold(
+      appBar: AppBar(
+        toolbarHeight: 2,
+        backgroundColor: Color(0xffD2E4DC),
+        automaticallyImplyLeading: false,
+      ),
       backgroundColor: const Color(0xffECECEC),
       body: _loading
           ? const Center(child: CircularProgressIndicator())
           : ListView(
+              physics: NeverScrollableScrollPhysics(),
               children: [
-                const SizedBox(height: 38),
+                Container(
+                  height: 30,
+                  color: Color(0xffD2E4DC),
+                ),
                 Container(
                   color: const Color(0xffD2E4DC),
                   child: Row(
-                    children: const [
+                    children: [
                       SizedBox(width: 18),
                       Icon(Icons.notifications,
                           size: 35, color: Color(0xff002114)),
+                      IconButton(
+                        onPressed: () {
+                          Navigator.of(context).push(MaterialPageRoute(
+                              builder: (context) => Favorites()));
+                        },
+                        icon: Icon(Icons.favorite,
+                            size: 35, color: Color.fromARGB(255, 182, 23, 23)),
+                      ),
                       Spacer(),
                       Icon(Icons.restore, size: 35, color: Color(0xff002114)),
                       SizedBox(width: 23),
@@ -144,7 +159,7 @@ class _ProfileInformationState extends State<ProfileInformation> {
                     ],
                   ),
                 ),
-                const SizedBox(height: 10),
+                const SizedBox(height: 8),
                 Center(
                   child: Text(
                     _userData?['name'] ?? user?.displayName ?? 'No name',
@@ -179,7 +194,7 @@ class _ProfileInformationState extends State<ProfileInformation> {
                     ),
                   ],
                 ),
-                const SizedBox(height: 50),
+                const SizedBox(height: 15),
                 _buildSettingsSection(context, appLang),
               ],
             ),
@@ -232,19 +247,16 @@ class _ProfileInformationState extends State<ProfileInformation> {
               label: "Edit profile information",
               onTap: () => Navigator.of(context)
                   .push(MaterialPageRoute(builder: (context) => EdidProfile())),
-              trailing: "On",
             ),
             buildRow(
               icon: Icons.notifications,
               label: "Notifications",
               onTap: () => Navigator.of(context).push(
                   MaterialPageRoute(builder: (context) => Notifications())),
-              trailing: "On",
             ),
             buildRow(
               icon: Icons.translate,
               label: "Language".tr(),
-              trailing: appLang.currentLanguage,
               onTap: () async {
                 final selected = await Navigator.push<int>(
                   context,
@@ -269,7 +281,7 @@ class _ProfileInformationState extends State<ProfileInformation> {
               },
             ),
           ]),
-          const SizedBox(height: 25),
+          const SizedBox(height: 8),
           buildSettingsGroup([
             buildRow(icon: Icons.security, label: "Security"),
             buildRow(
@@ -279,7 +291,7 @@ class _ProfileInformationState extends State<ProfileInformation> {
               trailing: isDarkMode ? "Dark mode" : "Light mode",
             ),
           ]),
-          const SizedBox(height: 25),
+          const SizedBox(height: 8),
           buildSettingsGroup([
             buildRow(icon: Icons.help_outline, label: "Help & Support"),
             buildRow(icon: Icons.contact_mail, label: "Contact us"),
@@ -290,17 +302,37 @@ class _ProfileInformationState extends State<ProfileInformation> {
                   .push(MaterialPageRoute(builder: (_) => privacy())),
             ),
           ]),
+          const SizedBox(height: 8),
           ElevatedButton(
-            onPressed: () async {
-              await Provider.of<LoginState>(context, listen: false).logout();
-              Navigator.of(context).push(
-                  MaterialPageRoute(builder: (context) => const Homepage()));
-            },
-            child: Text(
-              "Logout",
-              style: TextStyle(color: Colors.red),
-            ),
-          )
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xffE5E5E5),
+                minimumSize: const Size(double.infinity, 50),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                alignment: Alignment.centerLeft,
+              ),
+              onPressed: () async {
+                await Provider.of<LoginState>(context, listen: false).logout();
+                Navigator.of(context).push(
+                    MaterialPageRoute(builder: (context) => const Homepage()));
+              },
+              child: Row(
+                children: [
+                  SizedBox(
+                    width: 6,
+                  ),
+                  Icon(
+                    Icons.logout,
+                    size: 20,
+                    color: Colors.red,
+                  ),
+                  Text(
+                    "    Logout",
+                    style: TextStyle(color: Colors.red, fontSize: 18),
+                  ),
+                ],
+              ))
         ],
       ),
     );
@@ -327,8 +359,10 @@ class _ProfileInformationState extends State<ProfileInformation> {
           }
         } else if (_selectedIndex == 2) {
           if (user != null) {
-            Navigator.of(context)
-                .push(MaterialPageRoute(builder: (context) => MessagesPage()));
+            Navigator.of(context).push(MaterialPageRoute(
+                builder: (context) => MessagesPage(
+                      userId: null,
+                    )));
           } else {
             Navigator.of(context).push(
                 MaterialPageRoute(builder: (context) => const LoginPage()));

@@ -1,7 +1,7 @@
-import 'package:MOLLILE/Dartpages/CustomWidget/buttom.dart';
-import 'package:MOLLILE/Dartpages/HomePage/Home_page.dart';
-import 'package:MOLLILE/Dartpages/sighUpIn/Registration.dart';
-import 'package:MOLLILE/Dartpages/sighUpIn/login_state.dart';
+import 'package:Mollni/Dartpages/HomePage/Home_page.dart';
+import 'package:Mollni/Dartpages/sighUpIn/Registration.dart';
+import 'package:Mollni/Dartpages/sighUpIn/login_state.dart';
+import 'package:Mollni/simple_functions/botton.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_sign_in/google_sign_in.dart';
@@ -226,7 +226,7 @@ class _LoginPageState extends State<LoginPage> {
                 width: 350,
                 fontSize: 15,
                 onTap: () {
-                  return _login();
+                  _login();
                 },
               ),
               const SizedBox(height: 30),

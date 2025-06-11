@@ -1,5 +1,5 @@
-import 'package:MOLLILE/Dartpages/CustomWidget/buttom.dart';
-import 'package:MOLLILE/Dartpages/HomePage/Home_page.dart';
+import 'package:Mollni/Dartpages/HomePage/Home_page.dart';
+import 'package:Mollni/simple_functions/botton.dart';
 import 'package:flutter/material.dart';
 
 class StartThreePages extends StatefulWidget {

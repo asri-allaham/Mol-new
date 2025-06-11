@@ -1,4 +1,4 @@
-import 'package:MOLLILE/Dartpages/UserData/rowprofile.dart';
+import 'package:Mollni/Dartpages/UserData/rowprofile.dart';
 import 'package:flutter/material.dart';
 
 Widget buildSettingsGroup(List<Widget> children) {

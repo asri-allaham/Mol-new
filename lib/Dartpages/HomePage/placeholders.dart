@@ -1,5 +1,8 @@
-import 'package:MOLLILE/Dartpages/sighUpIn/LoginPage.dart';
-import 'package:MOLLILE/Dartpages/simple_functions/star_menu_button.dart';
+import 'package:Mollni/Dartpages/Communicate%20with%20investor/business%20owners/messages_page.dart';
+import 'package:Mollni/Dartpages/HomePage/Home_page.dart';
+import 'package:Mollni/Dartpages/HomePage/ProjectImagesCarousel.dart';
+import 'package:Mollni/Dartpages/sighUpIn/LoginPage.dart';
+import 'package:Mollni/simple_functions/star_menu_button.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
@@ -21,16 +24,18 @@ class _PlaceholdersState extends State<Placeholders> {
   final dateFormatter = DateFormat('yMMMd');
   Map<String, dynamic>? _userData;
   List<Map<String, dynamic>> ratings = [];
+  bool isFavorited = false;
   String? resident;
   int _rating = 0;
-  String userComment = "none";
   final currentUserId = FirebaseAuth.instance.currentUser?.uid;
+  User? user = FirebaseAuth.instance.currentUser;
 
   @override
   void initState() {
     super.initState();
     fetchUserData();
     fetchRatings();
+    checkIfFavorited();
   }
 
   bool isUserInRatings(String currentUserId) {
@@ -110,8 +115,8 @@ class _PlaceholdersState extends State<Placeholders> {
     }
   }
 
-  Future<void> reportProjectIfNotAlreadyReported(
-      BuildContext context, int projectNumber, String ownerUserId) async {
+  Future<void> reportProjectIfNotAlreadyReported(BuildContext context,
+      int projectNumber, String ownerUserId, String reporttype) async {
     final TextEditingController reasonController = TextEditingController();
     final currentUserId = FirebaseAuth.instance.currentUser?.uid;
 
@@ -135,7 +140,7 @@ class _PlaceholdersState extends State<Placeholders> {
       if (querySnapshot.docs.isEmpty) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text("Project not found."),
+            content: Text("error ,not found."),
             backgroundColor: Colors.red,
           ),
         );
@@ -147,12 +152,13 @@ class _PlaceholdersState extends State<Placeholders> {
       final reportsSnapshot = await projectDoc.reference
           .collection('reports')
           .where('userUid', isEqualTo: currentUserId)
+          .where('reporttype', isEqualTo: reporttype)
           .get();
 
       if (reportsSnapshot.docs.isNotEmpty) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text("You have already reported this project."),
+            content: Text("You have already reported this!"),
             backgroundColor: Colors.orange,
           ),
         );
@@ -179,7 +185,7 @@ class _PlaceholdersState extends State<Placeholders> {
                 child: const Text("Submit"),
                 onPressed: () async {
                   final reason = reasonController.text.trim().isEmpty
-                      ? "none"
+                      ? ""
                       : reasonController.text.trim();
 
                   Navigator.of(context).pop();
@@ -189,6 +195,7 @@ class _PlaceholdersState extends State<Placeholders> {
                       'userUid': currentUserId,
                       'reason': reason,
                       'timeOfReport': Timestamp.now(),
+                      'reporttype': reporttype
                     });
 
                     ScaffoldMessenger.of(context).showSnackBar(
@@ -270,7 +277,7 @@ class _PlaceholdersState extends State<Placeholders> {
                 child: const Text("Submit"),
                 onPressed: () async {
                   final comment = commentController.text.trim().isEmpty
-                      ? "none"
+                      ? ""
                       : commentController.text.trim();
 
                   Navigator.of(context).pop();
@@ -284,14 +291,14 @@ class _PlaceholdersState extends State<Placeholders> {
                     if (ratingsSnapshot.docs.isNotEmpty) {
                       final ratingDoc = ratingsSnapshot.docs.first;
                       await ratingDoc.reference.update({
-                        'comment': comment.isEmpty ? 'none' : comment,
+                        'comment': comment.isEmpty ? '' : comment,
                         'timeOfRating': Timestamp.now(),
                         'Starnumber': ratingnumber
                       });
                     } else {
                       await projectDoc.reference.collection('ratings').add({
                         'userUid': currentUserId,
-                        'comment': comment.isEmpty ? 'none' : comment,
+                        'comment': comment.isEmpty ? '' : comment,
                         'timeOfRating': Timestamp.now(),
                         'Starnumber': ratingnumber
                       });
@@ -328,34 +335,36 @@ class _PlaceholdersState extends State<Placeholders> {
     }
   }
 
-  void _reportProjectWithReason(String userId, int numberProject) async {
+  void _reportWithReason(
+      String userIdOwner, int numberProject, String reporttype) async {
     try {
-      await reportProjectIfNotAlreadyReported(context, numberProject, userId);
+      await reportProjectIfNotAlreadyReported(
+          context, numberProject, userIdOwner, reporttype);
     } catch (e) {
       print(e);
     }
   }
 
   void _rateProjectWithcommant(
-      String userId, int numberProject, int ratingnumber) async {
+      String userIdOwner, int numberProject, int ratingnumber) async {
     try {
       await ratingProjectsIfNotAlreadyRated(
-          context, numberProject, userId, ratingnumber);
+          context, numberProject, userIdOwner, ratingnumber);
     } catch (e) {
       print(e);
     }
   }
 
   void _chatWithUser() {
-    // final userId = widget.projectList['user_id'];
-    // if (userId != null) {
-    //   Navigator.of(context).push(
-    //     MaterialPageRoute(
-    //       builder: (_) => masseges(userId: userId),
-    //     ),
-    //   );
-    // }
+    final userId = widget.projectList['user_id'];
+    if (userId != null) {
+      Navigator.of(context).push(MaterialPageRoute(
+          builder: (context) => MessagesPage(
+                userId: userId,
+              )));
+    }
   }
+
   Widget _buildDefaultAvatar() {
     return Image.asset(
       'lib/img/person1.png',
@@ -426,16 +435,8 @@ class _PlaceholdersState extends State<Placeholders> {
                 const SizedBox(height: 20),
                 Column(
                   children: [
-                    for (String image in project['image_urls'])
-                      ClipRRect(
-                        borderRadius: BorderRadius.circular(12),
-                        child: Image.network(
-                          image,
-                          height: 200,
-                          width: double.infinity,
-                          fit: BoxFit.cover,
-                        ),
-                      ),
+                    ProjectImagesCarousel(
+                        imageUrls: List<String>.from(project['image_urls']))
                   ],
                 ),
                 const SizedBox(height: 16),
@@ -453,6 +454,58 @@ class _PlaceholdersState extends State<Placeholders> {
                     dateFormatter.format(
                         (project['created_at'] as Timestamp?)?.toDate() ??
                             DateTime.now())),
+                Align(
+                  alignment: Alignment.centerRight,
+                  child: TextButton.icon(
+                    onPressed: () async {
+                      await toggleFavoriteProjectGlobal(
+                          context,
+                          widget.projectList['projectNumber'],
+                          widget.projectList['user_id'],
+                          user!.uid);
+                      setState(() {
+                        isFavorited = !isFavorited;
+                      });
+                    },
+                    icon: Icon(
+                      isFavorited ? Icons.favorite : Icons.favorite_border,
+                      color: isFavorited ? Colors.red : Colors.grey,
+                    ),
+                    label: Text(
+                      isFavorited ? "Remove from favorite" : "Add to favorite",
+                      style: const TextStyle(
+                          color: Color.fromARGB(255, 98, 244, 54)),
+                    ),
+                  ),
+                ),
+                if (user?.uid != null)
+                  if (user!.uid != widget.projectList['user_id'])
+                    Align(
+                      alignment: Alignment.centerRight,
+                      child: TextButton.icon(
+                        onPressed: () {
+                          _reportWithReason(widget.projectList['user_id'],
+                              widget.projectList['projectNumber'], "Project");
+                        },
+                        icon: const Icon(Icons.flag, color: Colors.red),
+                        label: const Text("Report Project",
+                            style: TextStyle(color: Colors.red)),
+                      ),
+                    ),
+                if (user?.uid != null)
+                  if (user!.uid == widget.projectList['user_id'])
+                    Align(
+                      alignment: Alignment.centerRight,
+                      child: TextButton.icon(
+                        onPressed: () {
+                          deleteProject((context), user!.uid,
+                              widget.projectList['projectNumber']);
+                        },
+                        icon: const Icon(Icons.flag, color: Colors.red),
+                        label: const Text("Delete project",
+                            style: TextStyle(color: Colors.red)),
+                      ),
+                    ),
                 const Divider(height: 32),
                 Column(
                   children: [
@@ -666,95 +719,230 @@ class _PlaceholdersState extends State<Placeholders> {
                                                       ),
                                                     ),
                                                     StarMenuButton(
+                                                        items: [
+                                                          Container(
+                                                            padding: EdgeInsets
+                                                                .symmetric(
+                                                                    horizontal:
+                                                                        16,
+                                                                    vertical:
+                                                                        8),
+                                                            decoration:
+                                                                BoxDecoration(
+                                                              color: Color
+                                                                  .fromARGB(
+                                                                      255,
+                                                                      103,
+                                                                      90,
+                                                                      89),
+                                                              borderRadius:
+                                                                  BorderRadius
+                                                                      .circular(
+                                                                          8),
+                                                              boxShadow: [
+                                                                BoxShadow(
+                                                                  color: Colors
+                                                                      .black
+                                                                      .withOpacity(
+                                                                          0.2),
+                                                                  offset:
+                                                                      Offset(
+                                                                          0, 2),
+                                                                  blurRadius: 4,
+                                                                ),
+                                                              ],
+                                                            ),
+                                                            child: Text(
+                                                              "Remove",
+                                                              style: TextStyle(
+                                                                color: Colors
+                                                                    .white,
+                                                                fontWeight:
+                                                                    FontWeight
+                                                                        .bold,
+                                                                fontSize: 16,
+                                                                letterSpacing:
+                                                                    1.2,
+                                                              ),
+                                                            ),
+                                                          ),
+                                                          Container(
+                                                            padding: EdgeInsets
+                                                                .symmetric(
+                                                                    horizontal:
+                                                                        16,
+                                                                    vertical:
+                                                                        8),
+                                                            decoration:
+                                                                BoxDecoration(
+                                                              color: Color
+                                                                  .fromARGB(
+                                                                      255,
+                                                                      103,
+                                                                      90,
+                                                                      89),
+                                                              borderRadius:
+                                                                  BorderRadius
+                                                                      .circular(
+                                                                          8),
+                                                              boxShadow: [
+                                                                BoxShadow(
+                                                                  color: Colors
+                                                                      .black
+                                                                      .withOpacity(
+                                                                          0.2),
+                                                                  offset:
+                                                                      Offset(
+                                                                          0, 2),
+                                                                  blurRadius: 4,
+                                                                ),
+                                                              ],
+                                                            ),
+                                                            child: Text(
+                                                              "Edit",
+                                                              style: TextStyle(
+                                                                color: Colors
+                                                                    .white,
+                                                                fontWeight:
+                                                                    FontWeight
+                                                                        .bold,
+                                                                fontSize: 16,
+                                                                letterSpacing:
+                                                                    1.2,
+                                                              ),
+                                                            ),
+                                                          ),
+                                                          Container(
+                                                            padding: EdgeInsets
+                                                                .symmetric(
+                                                                    horizontal:
+                                                                        16,
+                                                                    vertical:
+                                                                        8),
+                                                            decoration:
+                                                                BoxDecoration(
+                                                              color: Color
+                                                                  .fromARGB(
+                                                                      255,
+                                                                      103,
+                                                                      90,
+                                                                      89),
+                                                              borderRadius:
+                                                                  BorderRadius
+                                                                      .circular(
+                                                                          8),
+                                                              boxShadow: [
+                                                                BoxShadow(
+                                                                  color: Colors
+                                                                      .black
+                                                                      .withOpacity(
+                                                                          0.2),
+                                                                  offset:
+                                                                      Offset(
+                                                                          0, 2),
+                                                                  blurRadius: 4,
+                                                                ),
+                                                              ],
+                                                            ),
+                                                            child: Text(
+                                                              "close",
+                                                              style: TextStyle(
+                                                                color: Colors
+                                                                    .white,
+                                                                fontWeight:
+                                                                    FontWeight
+                                                                        .bold,
+                                                                fontSize: 16,
+                                                                letterSpacing:
+                                                                    1.2,
+                                                              ),
+                                                            ),
+                                                          ),
+                                                        ],
+                                                        onItemTapped: (index) {
+                                                          if (index == 0) {
+                                                            User? user =
+                                                                FirebaseAuth
+                                                                    .instance
+                                                                    .currentUser;
+                                                            if (user != null) {
+                                                              removeRating(
+                                                                user.uid,
+                                                              );
+                                                            }
+                                                            return;
+                                                          }
+
+                                                          if (index == 1) {
+                                                            //...............
+                                                            User? user =
+                                                                FirebaseAuth
+                                                                    .instance
+                                                                    .currentUser;
+                                                            if (user != null) {
+                                                              removeRating(
+                                                                user.uid,
+                                                              );
+                                                            }
+
+                                                            showDialog(
+                                                              context: context,
+                                                              builder:
+                                                                  (context) {
+                                                                int tempRating =
+                                                                    _rating;
+
+                                                                return AlertDialog(
+                                                                  title: Text(
+                                                                      "Rate This Project"),
+                                                                  content: Row(
+                                                                    mainAxisAlignment:
+                                                                        MainAxisAlignment
+                                                                            .center,
+                                                                    children: List
+                                                                        .generate(
+                                                                            5,
+                                                                            (index) {
+                                                                      return IconButton(
+                                                                        icon:
+                                                                            Icon(
+                                                                          index < tempRating
+                                                                              ? Icons.star
+                                                                              : Icons.star_border,
+                                                                          color:
+                                                                              Colors.amber,
+                                                                        ),
+                                                                        iconSize:
+                                                                            40,
+                                                                        onPressed:
+                                                                            () {
+                                                                          setState(
+                                                                              () {
+                                                                            _rating =
+                                                                                index + 1;
+                                                                          });
+
+                                                                          Navigator.of(context)
+                                                                              .pop(); // Close dialog
+
+                                                                          _rateProjectWithcommant(
+                                                                            widget.projectList['user_id'],
+                                                                            widget.projectList['projectNumber'],
+                                                                            _rating,
+                                                                          );
+                                                                        },
+                                                                      );
+                                                                    }),
+                                                                  ),
+                                                                );
+                                                              },
+                                                            );
+                                                          }
+                                                          return;
+                                                        }),
+                                                  ] else ...[
+                                                    StarMenuButton(
                                                       items: [
-                                                        Container(
-                                                          padding: EdgeInsets
-                                                              .symmetric(
-                                                                  horizontal:
-                                                                      16,
-                                                                  vertical: 8),
-                                                          decoration:
-                                                              BoxDecoration(
-                                                            color:
-                                                                Color.fromARGB(
-                                                                    255,
-                                                                    103,
-                                                                    90,
-                                                                    89),
-                                                            borderRadius:
-                                                                BorderRadius
-                                                                    .circular(
-                                                                        8),
-                                                            boxShadow: [
-                                                              BoxShadow(
-                                                                color: Colors
-                                                                    .black
-                                                                    .withOpacity(
-                                                                        0.2),
-                                                                offset: Offset(
-                                                                    0, 2),
-                                                                blurRadius: 4,
-                                                              ),
-                                                            ],
-                                                          ),
-                                                          child: Text(
-                                                            "Remove",
-                                                            style: TextStyle(
-                                                              color:
-                                                                  Colors.white,
-                                                              fontWeight:
-                                                                  FontWeight
-                                                                      .bold,
-                                                              fontSize: 16,
-                                                              letterSpacing:
-                                                                  1.2,
-                                                            ),
-                                                          ),
-                                                        ),
-                                                        Container(
-                                                          padding: EdgeInsets
-                                                              .symmetric(
-                                                                  horizontal:
-                                                                      16,
-                                                                  vertical: 8),
-                                                          decoration:
-                                                              BoxDecoration(
-                                                            color:
-                                                                Color.fromARGB(
-                                                                    255,
-                                                                    103,
-                                                                    90,
-                                                                    89),
-                                                            borderRadius:
-                                                                BorderRadius
-                                                                    .circular(
-                                                                        8),
-                                                            boxShadow: [
-                                                              BoxShadow(
-                                                                color: Colors
-                                                                    .black
-                                                                    .withOpacity(
-                                                                        0.2),
-                                                                offset: Offset(
-                                                                    0, 2),
-                                                                blurRadius: 4,
-                                                              ),
-                                                            ],
-                                                          ),
-                                                          child: Text(
-                                                            "Edit",
-                                                            style: TextStyle(
-                                                              color:
-                                                                  Colors.white,
-                                                              fontWeight:
-                                                                  FontWeight
-                                                                      .bold,
-                                                              fontSize: 16,
-                                                              letterSpacing:
-                                                                  1.2,
-                                                            ),
-                                                          ),
-                                                        ),
                                                         Container(
                                                           padding: EdgeInsets
                                                               .symmetric(
@@ -799,31 +987,62 @@ class _PlaceholdersState extends State<Placeholders> {
                                                             ),
                                                           ),
                                                         ),
-                                                      ],
-                                                      onItemTapped: (index) {
-                                                        if (index == 0) {
-                                                          // removeRating(index, rating),
-                                                        }
-                                                      },
-                                                    ),
-                                                  ] else ...[
-                                                    StarMenuButton(
-                                                      items: [
-                                                        CircleAvatar(
-                                                          backgroundColor:
-                                                              Colors.red,
-                                                          child: Text('1'),
+                                                        Container(
+                                                          padding: EdgeInsets
+                                                              .symmetric(
+                                                                  horizontal:
+                                                                      16,
+                                                                  vertical: 8),
+                                                          decoration:
+                                                              BoxDecoration(
+                                                            color:
+                                                                Color.fromARGB(
+                                                                    255,
+                                                                    103,
+                                                                    90,
+                                                                    89),
+                                                            borderRadius:
+                                                                BorderRadius
+                                                                    .circular(
+                                                                        8),
+                                                            boxShadow: [
+                                                              BoxShadow(
+                                                                color: Colors
+                                                                    .black
+                                                                    .withOpacity(
+                                                                        0.2),
+                                                                offset: Offset(
+                                                                    0, 2),
+                                                                blurRadius: 4,
+                                                              ),
+                                                            ],
+                                                          ),
+                                                          child: Text(
+                                                            "Report!",
+                                                            style: TextStyle(
+                                                              color:
+                                                                  Colors.white,
+                                                              fontWeight:
+                                                                  FontWeight
+                                                                      .bold,
+                                                              fontSize: 16,
+                                                              letterSpacing:
+                                                                  1.2,
+                                                            ),
+                                                          ),
                                                         ),
-                                                        CircleAvatar(
-                                                          backgroundColor:
-                                                              Colors.blue,
-                                                          child: Text('2'),
-                                                        ),
-                                                        Icon(Icons.star),
                                                       ],
                                                       onItemTapped: (index) {
                                                         print(
                                                             'You tapped item $index');
+                                                        if (index == 1) {
+                                                          _reportWithReason(
+                                                              widget.projectList[
+                                                                  'user_id'],
+                                                              widget.projectList[
+                                                                  'projectNumber'],
+                                                              'comment');
+                                                        }
                                                       },
                                                     ),
                                                     Flexible(
@@ -968,20 +1187,6 @@ class _PlaceholdersState extends State<Placeholders> {
                   ],
                 ),
                 const SizedBox(height: 20),
-                Align(
-                  alignment: Alignment.centerRight,
-                  child: TextButton.icon(
-                    onPressed: () {
-                      _reportProjectWithReason(
-                        widget.projectList['user_id'],
-                        widget.projectList['projectNumber'],
-                      );
-                    },
-                    icon: const Icon(Icons.flag, color: Colors.red),
-                    label: const Text("Report",
-                        style: TextStyle(color: Colors.red)),
-                  ),
-                ),
               ],
             ),
           ),
@@ -1012,5 +1217,189 @@ class _PlaceholdersState extends State<Placeholders> {
         ],
       ),
     );
+  }
+
+  void removeRating(String uid) async {
+    final userId = widget.projectList['user_id'];
+    final projectNumber = widget.projectList['projectNumber'];
+
+    try {
+      final projectQuery = await FirebaseFirestore.instance
+          .collection('projects')
+          .where('user_id', isEqualTo: userId)
+          .where('projectNumber', isEqualTo: projectNumber)
+          .get();
+
+      if (projectQuery.docs.isEmpty) {
+        print("isEmpty");
+        return;
+      }
+
+      final projectDoc = projectQuery.docs.first;
+      final ratingsRef = projectDoc.reference.collection('ratings');
+
+      final ratingsSnapshot = await ratingsRef.get();
+      for (final doc in ratingsSnapshot.docs) {
+        if (doc.data()['userUid'] == uid) {
+          await doc.reference.delete();
+          print('Rating deleted for uid: $uid');
+          break;
+        }
+      }
+
+      final updatedSnapshot = await ratingsRef.get();
+      setState(() {
+        ratings = updatedSnapshot.docs.map((doc) => doc.data()).toList();
+      });
+    } catch (e) {
+      print('Error removing rating: $e');
+    }
+  }
+
+  Future<void> deleteProject(
+      BuildContext context, String uid, int projectNumber) async {
+    final projectsCollection =
+        FirebaseFirestore.instance.collection('projects');
+
+    // Show confirmation dialog
+    final bool? confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Confirm Deletion'),
+        content: const Text('Are you sure you want to delete this project?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false), // Cancel
+            child: const Text('No'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(true), // Confirm
+            child: const Text('Yes'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true) {
+      // User cancelled deletion
+      return;
+    }
+
+    try {
+      final querySnapshot = await projectsCollection
+          .where('user_id', isEqualTo: uid)
+          .where('projectNumber', isEqualTo: projectNumber)
+          .limit(1)
+          .get();
+
+      if (querySnapshot.docs.isEmpty) {
+        print('No project found for user $uid with number $projectNumber');
+        return;
+      }
+
+      final docId = querySnapshot.docs.first.id;
+
+      await projectsCollection.doc(docId).delete();
+
+      print('Deleted project number $projectNumber for user $uid');
+      Navigator.of(context).push(
+        MaterialPageRoute(builder: (context) => const Homepage()),
+      );
+    } catch (e) {
+      print('Error deleting project: $e');
+    }
+  }
+
+  Future<void> toggleFavoriteProjectGlobal(
+    BuildContext context,
+    int numberProject,
+    String userID_owner,
+    String uid_current,
+  ) async {
+    try {
+      final projectId = numberProject.toString() + userID_owner;
+      final favQuery = await FirebaseFirestore.instance
+          .collection('favorites')
+          .where('projectId', isEqualTo: projectId)
+          .where('currentUserId', isEqualTo: uid_current)
+          .limit(1)
+          .get();
+
+      if (favQuery.docs.isNotEmpty) {
+        await favQuery.docs.first.reference.delete();
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text("Removed from favorites."),
+            backgroundColor: Colors.orange,
+          ),
+        );
+      } else {
+        await FirebaseFirestore.instance.collection('favorites').add({
+          'currentUserId': uid_current,
+          'timeofadding': Timestamp.now(),
+          'numberProject': numberProject,
+          'userID_owner': userID_owner,
+          'projectId': projectId,
+        });
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text("Added to favorites."),
+            backgroundColor: Colors.green,
+          ),
+        );
+      }
+    } catch (e) {
+      print("Error toggling favorite: $e");
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text("Error: ${e.toString()}"),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+  }
+
+  Future<void> checkIfFavorited() async {
+    try {
+      print("Checking if project is favorited by ${user!.uid}");
+
+      final querySnapshot = await FirebaseFirestore.instance
+          .collection('projects')
+          .where('projectNumber',
+              isEqualTo: widget.projectList['projectNumber'])
+          .where('user_id', isEqualTo: widget.projectList['user_id'])
+          .limit(1)
+          .get();
+
+      print("Project query returned: ${querySnapshot.docs.length} documents");
+
+      if (querySnapshot.docs.isNotEmpty) {
+        final projectDoc = querySnapshot.docs.first;
+        print("Found project doc ID: ${projectDoc.id}");
+
+        final favQuery = await projectDoc.reference
+            .collection('favProjects')
+            .where('currentUserId', isEqualTo: user!.uid)
+            .limit(1)
+            .get();
+
+        print("Favorites query returned: ${favQuery.docs.length} documents");
+
+        setState(() {
+          isFavorited = favQuery.docs.isNotEmpty;
+        });
+
+        if (isFavorited) {
+          print("Project is favorited by user.");
+        } else {
+          print("Project is not favorited.");
+        }
+      } else {
+        print("No project found in checkIfFavorited.");
+      }
+    } catch (e) {
+      print("Error in checkIfFavorited: $e");
+    }
   }
 }

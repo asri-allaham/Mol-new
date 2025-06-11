@@ -1,5 +1,5 @@
-import 'package:MOLLILE/Dartpages/Communicate%20with%20investor/business%20owners/ChatPageOldV.dart';
-import 'package:MOLLILE/Dartpages/CustomWidget/SearchBox.dart';
+import 'package:Mollni/Dartpages/Communicate%20with%20investor/business%20owners/ChatPageOldV.dart';
+import 'package:Mollni/Dartpages/CustomWidget/SearchBox.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
