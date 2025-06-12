@@ -142,6 +142,9 @@ class _StartThreePagesState extends State<StartThreePages> {
               }
             },
           ),
+          SizedBox(
+            height: 40,
+          )
         ],
       ),
     );

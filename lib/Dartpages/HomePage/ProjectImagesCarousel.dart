@@ -29,10 +29,10 @@ class _ProjectImagesCarouselState extends State<ProjectImagesCarousel> {
             );
           }).toList(),
           options: CarouselOptions(
-            height: 200,
+            height: 250,
             enlargeCenterPage: true,
             enableInfiniteScroll: false,
-            viewportFraction: 0.9,
+            viewportFraction: 1,
             onPageChanged: (index, reason) {
               setState(() {
                 _current = index;
@@ -51,7 +51,7 @@ class _ProjectImagesCarouselState extends State<ProjectImagesCarousel> {
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
                 color: _current == entry.key
-                    ? Colors.blueAccent
+                    ? Color(0xff009688)
                     : Colors.grey[400],
               ),
             );

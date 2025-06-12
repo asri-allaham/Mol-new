@@ -13,7 +13,7 @@ class Contracts extends StatefulWidget {
 }
 
 class _ContractsState extends State<Contracts> {
-  List<Map<String, dynamic>> projects = [];
+  List<Map<String, dynamic>> projects = [], project =[ ];
   List<Map<String, dynamic>> filteredProjects = [];
   bool _isLoading = true;
   final user = FirebaseAuth.instance.currentUser;
@@ -31,12 +31,56 @@ class _ContractsState extends State<Contracts> {
   final TextEditingController paymentPeriodController = TextEditingController();
   final TextEditingController dispute_resolutionController =
       TextEditingController();
+  late String projectID;
 
   @override
   void initState() {
     super.initState();
     fetchProjectsAndOwners(
         widget.Information_about_us['_currentOtherUserEmail']);
+  }
+
+  Future<void> GetProjectByuserIDNumber(String otherUserId) async {
+    try {
+      final query = FirebaseFirestore.instance.collection('projects');
+
+      if (Actions[1]) {
+        final snapshot = await query
+            .where('user_id', isEqualTo: user!.uid)
+            .where('projectNumber', isEqualTo: selectedProjectNumber)
+            .get();
+        for (var doc in snapshot.docs) {
+          final projectData = doc.data();
+          final adminAccepted = projectData['Adminacceptance'] ?? false;
+
+          if (adminAccepted != true) {
+            continue;
+          }
+          setState(() {
+            project = [projectData];
+            projectID = doc.id;
+          });
+        }
+      } else {
+        final snapshot = await query
+            .where('user_id', isEqualTo: otherUserId)
+            .where('projectNumber', isEqualTo: selectedProjectNumber)
+            .get();
+        for (var doc in snapshot.docs) {
+          final projectData = doc.data();
+          final adminAccepted = projectData['Adminacceptance'] ?? false;
+
+          if (adminAccepted != true) {
+            continue;
+          }
+          setState(() {
+            project = [projectData];
+          });
+        }
+      }
+    } catch (e) {
+      print(e);
+    }
   }
 
   Future<void> fetchProjectsAndOwners(String otheruserID) async {
@@ -135,6 +179,8 @@ class _ContractsState extends State<Contracts> {
                             Actions[0] = true;
                             Actions[1] =
                                 selectedProject['user_id'] == user!.uid;
+                            GetProjectByuserIDNumber(
+                                selectedProject['user_id']);
                           }
                         });
                       },
@@ -311,8 +357,26 @@ class _ContractsState extends State<Contracts> {
                       await FirebaseFirestore.instance
                           .collection('Contracts')
                           .add({
-                        'Information about us': [widget.Information_about_us],
+                        'Information about us': widget.Information_about_us,
+                        'Information about Project': project,
+                        'Contract Information': {
+                          'dispute_resolution':
+                              dispute_resolutionController.text,
+                          'payment_period': paymentPeriodController.text,
+                          'percentage': percentageController.text,
+                          'payment_method': paymentMethodController.text,
+                          'amount': amountController.text,
+                          'owner_commitment': ownerCommitmentController.text,
+                          'investor_commitment':
+                              investorCommitmentController.text,
+                          'date_signed': Date_Signed.text,
+                        },
+                        'Curnt accepted sides': {
+                          '1': user!.uid,
+                          '2': 'Not yeat'
+                        }
                       });
+                      Navigator.of(context).pop();
                     },
                     style: TextButton.styleFrom(
                       backgroundColor: Colors.green,
@@ -343,6 +407,3 @@ class _ContractsState extends State<Contracts> {
     );
   }
 }
-
-// 	•	ما الذي سيلتزم به المستثمر (مثلاً: تحويل مبلغ معين، المشاركة في التوجيه، إلخ)
-// 	•	ما الذي سيلتزم به صاحب المشروع (مثلاً: تسليم تقارير، تحديثات منتظمة، استخدام الأموال في الغرض المتفق عليه، إلخ

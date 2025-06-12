@@ -40,7 +40,8 @@ class _MessagesPageState extends State<MessagesPage> {
   String _currentChatId = "";
   String _currentOtherUserEmail = "";
   String _currentOtherUserName = "";
-  bool _isLoading = false;
+  bool _isLoading = true;
+  DocumentSnapshot? maxContractDoc;
 
   @override
   void initState() {
@@ -400,6 +401,7 @@ class _MessagesPageState extends State<MessagesPage> {
                   if (_userData == null) {
                     await fetchUserData();
                   }
+
                   Map<String, dynamic> Information_about_us = {
                     '_currentChatId': _currentChatId,
                     '_currentOtherUserEmail': _currentOtherUserEmail,
@@ -410,6 +412,7 @@ class _MessagesPageState extends State<MessagesPage> {
                   };
                   Navigator.of(context).push(MaterialPageRoute(
                       builder: (context) => Contracts(Information_about_us)));
+                  fetchLastContractTextForUser(user!.uid);
                 },
                 borderRadius: BorderRadius.circular(12),
                 child: Container(
@@ -1090,5 +1093,98 @@ class _MessagesPageState extends State<MessagesPage> {
         ),
       ),
     );
+  }
+
+  String formatContractText(Map<String, dynamic> data) {
+    final amount = data['amount'] ?? 'N/A';
+    final dateSigned = data['date_signed'] ?? 'N/A';
+    final disputeResolution = data['dispute_resolution'] ?? 'N/A';
+    final investorCommitment = data['investor_commitment'] ?? 'N/A';
+    final ownerCommitment = data['owner_commitment'] ?? 'N/A';
+    final paymentMethod = data['payment_method'] ?? 'N/A';
+    final paymentPeriod = data['payment_period'] ?? 'N/A';
+    final percentage = data['percentage'] ?? 'N/A';
+    final contractsNumber = data['ContractsNumber']?.toString() ?? 'N/A';
+
+    final infoAboutUs =
+        data['Information about us'] as Map<String, dynamic>? ?? {};
+    final currentName = infoAboutUs['CurntName'] ?? 'N/A';
+    final currentEmail = infoAboutUs['CurntEmail'] ?? 'N/A';
+    final currentChatId = infoAboutUs['_currentChatId'] ?? 'N/A';
+
+    return '''
+📄 *Contract Summary* 📄
+
+Contract Number: $contractsNumber
+Amount: $amount
+Date Signed: $dateSigned
+Dispute Resolution: $disputeResolution
+Investor Commitment: $investorCommitment
+Owner Commitment: $ownerCommitment
+Payment Method: $paymentMethod
+Payment Period: $paymentPeriod
+Percentage: $percentage
+
+Current User:
+- Name: $currentName
+- Email: $currentEmail
+- Chat ID: $currentChatId
+''';
+  }
+
+  Future<void> fetchLastContractTextForUser(String userId) async {
+    final query = FirebaseFirestore.instance.collection('Contracts');
+    final snapshot = await query.get();
+
+    int maxnum = -1;
+    DocumentSnapshot? lastDoc;
+
+    for (var doc in snapshot.docs) {
+      final data = doc.data() as Map<String, dynamic>;
+      final acceptedSides =
+          data['Curnt accepted sides'] as Map<String, dynamic>?;
+
+      if (acceptedSides != null &&
+          acceptedSides['1'] == userId &&
+          data['_currentChatId'] == _currentChatId) {
+        final contractNumber = data['ContractsNumber'] ?? 0;
+
+        if (contractNumber >= maxnum) {
+          maxnum = contractNumber;
+          lastDoc = doc;
+        }
+      }
+    }
+
+    if (lastDoc == null) {
+      return;
+    }
+
+    final contractText =
+        formatContractText(lastDoc.data() as Map<String, dynamic>);
+
+    _sendContract(contractText);
+  }
+
+  void _sendContract(String contractText) async {
+    if (contractText.isEmpty || _currentChatId.isEmpty) return;
+
+    try {
+      await _firestore
+          .collection('chats')
+          .doc(_currentChatId)
+          .collection('messages')
+          .add({
+        'senderId': _currentUser.uid,
+        'senderEmail': _currentUser.email,
+        'text': contractText,
+        'timestamp': FieldValue.serverTimestamp(),
+        'type': 'contract',
+      });
+      _messageController.clear();
+      _scrollToBottom();
+    } catch (e) {
+      print('[ERROR] Failed to send message: $e');
+    }
   }
 }

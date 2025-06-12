@@ -313,12 +313,19 @@ class _ImageUploaderPageState extends State<Post> {
   }
 
   Future<int> getNextPostNumberForUser(String? userId) async {
-    final querySnapshot = await FirebaseFirestore.instance
-        .collection('post')
-        .where('user_id', isEqualTo: userId)
-        .get();
+    final counterDoc =
+        FirebaseFirestore.instance.collection('post').doc(userId);
 
-    return querySnapshot.docs.length + 1;
+    return FirebaseFirestore.instance.runTransaction<int>((transaction) async {
+      final snapshot = await transaction.get(counterDoc);
+      int current = 0;
+      if (snapshot.exists) {
+        current = snapshot.get('postNumber') as int;
+      }
+      final next = current + 1;
+      transaction.set(counterDoc, {'postNumber': next});
+      return next;
+    });
   }
 
   @override

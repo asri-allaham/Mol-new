@@ -83,11 +83,10 @@ class _HomepageState extends State<Homepage> {
       String userId, int projectNumber) {
     try {
       return projects.firstWhere(
-        (project) =>
-            project['user_id'] == userId &&
-            project['projectNumber'] == projectNumber,
-        orElse: () => {},
-      );
+          (project) =>
+              project['user_id'] == userId &&
+              project['projectNumber'] == projectNumber,
+          orElse: () => {});
     } catch (e) {
       print('Error finding project locally: $e');
       return null;
@@ -122,8 +121,7 @@ class _HomepageState extends State<Homepage> {
 
         final userId = projectData['user_id'];
         userFutures.add(
-          FirebaseFirestore.instance.collection('users').doc(userId).get(),
-        );
+            FirebaseFirestore.instance.collection('users').doc(userId).get());
 
         loadedProjects.add(projectData);
       }
@@ -177,8 +175,7 @@ class _HomepageState extends State<Homepage> {
           continue;
         }
         userFutures.add(
-          FirebaseFirestore.instance.collection('users').doc(userId).get(),
-        );
+            FirebaseFirestore.instance.collection('users').doc(userId).get());
 
         loadedPosts.add(postsData);
       }
@@ -225,21 +222,16 @@ class _HomepageState extends State<Homepage> {
         body: Center(
           child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
             const CircularProgressIndicator(
-              color: Color.fromARGB(255, 16, 76, 18),
-            ),
+                color: Color.fromARGB(255, 16, 76, 18)),
             if (user == null)
               Padding(
-                padding: const EdgeInsets.only(top: 20),
-                child: Text(
-                  randomMessage,
-                  style: const TextStyle(
-                    color: Color.fromARGB(255, 6, 105, 16),
-                    fontWeight: FontWeight.w500,
-                    fontSize: 16,
-                  ),
-                  textAlign: TextAlign.center,
-                ),
-              ),
+                  padding: const EdgeInsets.only(top: 20),
+                  child: Text(randomMessage,
+                      style: const TextStyle(
+                          color: Color.fromARGB(255, 6, 105, 16),
+                          fontWeight: FontWeight.w500,
+                          fontSize: 16),
+                      textAlign: TextAlign.center)),
           ]),
         ),
       );
@@ -258,23 +250,26 @@ class _HomepageState extends State<Homepage> {
                 if (projects.isNotEmpty)
                   _buildSectionTitle("the_most_popular".tr()),
                 const SizedBox(height: 12),
-                _buildImageSlider(projects, _currentPopularImageIndex, (index) {
+                _buildImageSlider(
+                    projects.take(5).toList(), _currentPopularImageIndex,
+                    (index) {
                   setState(() {
                     _currentPopularImageIndex = index;
                   });
-                }, 3),
-                _buildInfoRow(_currentPopularImageIndex, projects.length),
+                }, 5),
+                _buildInfoRow(_currentPopularImageIndex, 5),
                 const SizedBox(height: 30),
                 if (projects.isNotEmpty)
                   _buildSectionTitle("highest_investment".tr()),
                 const SizedBox(height: 12),
-                _buildImageSlider(projects, _currentInvestmentImageIndex,
+                _buildImageSlider(
+                    projects.take(5).toList(), _currentInvestmentImageIndex,
                     (index) {
                   setState(() {
                     _currentInvestmentImageIndex = index;
                   });
-                }, 3),
-                _buildInfoRow(_currentInvestmentImageIndex, projects.length),
+                }, 5),
+                _buildInfoRow(_currentInvestmentImageIndex, 5),
                 const SizedBox(height: 30),
                 _DisplayItem(),
               ],
@@ -296,13 +291,12 @@ class _HomepageState extends State<Homepage> {
                     Color(0xff03361F),
                     Color(0xff03361F),
                     Color(0xff03361F),
-                    Color(0xff03361F),
+                    Color(0xff03361F)
                   ],
                 ),
                 borderRadius: BorderRadius.only(
-                  topLeft: Radius.circular(20),
-                  topRight: Radius.circular(20),
-                ),
+                    topLeft: Radius.circular(20),
+                    topRight: Radius.circular(20)),
               ),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceAround,
@@ -362,7 +356,6 @@ class _HomepageState extends State<Homepage> {
                           Map<String, dynamic> Project;
                           Project = getProjectFromLocalList(
                               post['user_id'], post['projectNumber'])!;
-
                           Navigator.of(context).push(MaterialPageRoute(
                               builder: (context) => Placeholders(Project)));
                         },
@@ -374,23 +367,18 @@ class _HomepageState extends State<Homepage> {
                                   decoration: BoxDecoration(
                                     boxShadow: [
                                       BoxShadow(
-                                        color: Colors.black26,
-                                        blurRadius: 6,
-                                        offset: Offset(0, 3),
-                                      ),
+                                          color: Colors.black26,
+                                          blurRadius: 6,
+                                          offset: Offset(0, 3)),
                                     ],
                                   ),
-                                  child: Image.network(
-                                    imageUrl,
-                                    fit: BoxFit.cover,
-                                    width: double.infinity,
-                                    height: double.infinity,
-                                  ),
+                                  child: Image.network(imageUrl,
+                                      fit: BoxFit.cover,
+                                      width: double.infinity,
+                                      height: double.infinity),
                                 )
-                              : Image.asset(
-                                  'lib/img/placeholder.png',
-                                  fit: BoxFit.cover,
-                                ),
+                              : Image.asset('lib/img/placeholder.png',
+                                  fit: BoxFit.cover),
                         ),
                       ),
                       Positioned(
@@ -402,27 +390,18 @@ class _HomepageState extends State<Homepage> {
                             border: Border.all(color: Colors.white, width: 2),
                             boxShadow: [
                               BoxShadow(
-                                color: Colors.black26,
-                                blurRadius: 4,
-                                offset: Offset(0, 2),
-                              ),
+                                  color: Colors.black26,
+                                  blurRadius: 4,
+                                  offset: Offset(0, 2)),
                             ],
                           ),
                           child: ClipOval(
-                            child: Image.network(
-                              ownerImage,
-                              width: 25,
-                              height: 25,
-                              fit: BoxFit.cover,
-                              errorBuilder: (context, error, stackTrace) {
-                                return Image.asset(
-                                  'lib/img/person1.png',
-                                  width: 25,
-                                  height: 25,
-                                  fit: BoxFit.cover,
-                                );
-                              },
-                            ),
+                            child: Image.network(ownerImage,
+                                width: 25, height: 25, fit: BoxFit.cover,
+                                errorBuilder: (context, error, stackTrace) {
+                              return Image.asset('lib/img/person1.png',
+                                  width: 25, height: 25, fit: BoxFit.cover);
+                            }),
                           ),
                         ),
                       ),
@@ -430,26 +409,18 @@ class _HomepageState extends State<Homepage> {
                   ),
                 ),
                 const SizedBox(height: 8),
-                Text(
-                  post['name'] ?? 'No Name',
-                  style: const TextStyle(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 16,
-                    color: Colors.black87,
-                  ),
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                ),
+                Text(post['name'] ?? 'No Name',
+                    style: const TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 16,
+                        color: Colors.black87),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis),
                 const SizedBox(height: 6),
-                Text(
-                  dis,
-                  style: TextStyle(
-                    fontSize: 13,
-                    color: Colors.grey[700],
-                  ),
-                  maxLines: 3,
-                  overflow: TextOverflow.ellipsis,
-                ),
+                Text(dis,
+                    style: TextStyle(fontSize: 13, color: Colors.grey[700]),
+                    maxLines: 3,
+                    overflow: TextOverflow.ellipsis),
                 Align(
                   alignment: Alignment(1, .6),
                   child: (post['user_id'] == user?.uid)
@@ -466,21 +437,17 @@ class _HomepageState extends State<Homepage> {
                                   borderRadius: BorderRadius.circular(8),
                                   boxShadow: [
                                     BoxShadow(
-                                      color: Colors.black.withOpacity(0.2),
-                                      offset: Offset(0, 2),
-                                      blurRadius: 4,
-                                    ),
+                                        color: Colors.black.withOpacity(0.2),
+                                        offset: Offset(0, 2),
+                                        blurRadius: 4)
                                   ],
                                 ),
-                                child: Text(
-                                  "Remove",
-                                  style: TextStyle(
-                                    color: Colors.white,
-                                    fontWeight: FontWeight.bold,
-                                    fontSize: 16,
-                                    letterSpacing: 1.2,
-                                  ),
-                                ),
+                                child: Text("Remove",
+                                    style: TextStyle(
+                                        color: Colors.white,
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 16,
+                                        letterSpacing: 1.2)),
                               ),
                               Container(
                                 padding: EdgeInsets.symmetric(
@@ -490,36 +457,29 @@ class _HomepageState extends State<Homepage> {
                                   borderRadius: BorderRadius.circular(8),
                                   boxShadow: [
                                     BoxShadow(
-                                      color: Colors.black.withOpacity(0.2),
-                                      offset: Offset(0, 2),
-                                      blurRadius: 4,
-                                    ),
+                                        color: Colors.black.withOpacity(0.2),
+                                        offset: Offset(0, 2),
+                                        blurRadius: 4)
                                   ],
                                 ),
-                                child: Text(
-                                  "close",
-                                  style: TextStyle(
-                                    color: Colors.white,
-                                    fontWeight: FontWeight.bold,
-                                    fontSize: 16,
-                                    letterSpacing: 1.2,
-                                  ),
-                                ),
+                                child: Text("close",
+                                    style: TextStyle(
+                                        color: Colors.white,
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 16,
+                                        letterSpacing: 1.2)),
                               ),
                             ],
                             onItemTapped: (index) {
                               if (index == 0) {
                                 deletePost(
-                                  context: (context),
-                                  postNumber: post['postNumber'],
-                                );
+                                    context: context,
+                                    postNumber: post['postNumber']);
                                 setState(() {
                                   posts.removeWhere((p) =>
                                       p['postNumber'] == post['postNumber']);
                                 });
-                              } else {
-                                if (index == 1) {}
-                              }
+                              } else if (index == 1) {}
                             },
                           ),
                         )
@@ -536,21 +496,17 @@ class _HomepageState extends State<Homepage> {
                                   borderRadius: BorderRadius.circular(8),
                                   boxShadow: [
                                     BoxShadow(
-                                      color: Colors.black.withOpacity(0.2),
-                                      offset: Offset(0, 2),
-                                      blurRadius: 4,
-                                    ),
+                                        color: Colors.black.withOpacity(0.2),
+                                        offset: Offset(0, 2),
+                                        blurRadius: 4)
                                   ],
                                 ),
-                                child: Text(
-                                  "Report",
-                                  style: TextStyle(
-                                    color: Colors.white,
-                                    fontWeight: FontWeight.bold,
-                                    fontSize: 16,
-                                    letterSpacing: 1.2,
-                                  ),
-                                ),
+                                child: Text("Report",
+                                    style: TextStyle(
+                                        color: Colors.white,
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 16,
+                                        letterSpacing: 1.2)),
                               ),
                               Container(
                                 padding: EdgeInsets.symmetric(
@@ -560,21 +516,17 @@ class _HomepageState extends State<Homepage> {
                                   borderRadius: BorderRadius.circular(8),
                                   boxShadow: [
                                     BoxShadow(
-                                      color: Colors.black.withOpacity(0.2),
-                                      offset: Offset(0, 2),
-                                      blurRadius: 4,
-                                    ),
+                                        color: Colors.black.withOpacity(0.2),
+                                        offset: Offset(0, 2),
+                                        blurRadius: 4)
                                   ],
                                 ),
-                                child: Text(
-                                  "close",
-                                  style: TextStyle(
-                                    color: Colors.white,
-                                    fontWeight: FontWeight.bold,
-                                    fontSize: 16,
-                                    letterSpacing: 1.2,
-                                  ),
-                                ),
+                                child: Text("close",
+                                    style: TextStyle(
+                                        color: Colors.white,
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 16,
+                                        letterSpacing: 1.2)),
                               ),
                             ],
                             onItemTapped: (index) {
@@ -598,34 +550,26 @@ class _HomepageState extends State<Homepage> {
     return Row(
       children: [
         const SizedBox(width: 23),
-        Text(
-          title,
-          style: TextStyle(
-              fontSize: 20,
-              color: Color(0xff012113),
-              fontWeight: FontWeight.bold),
-        ),
+        Text(title,
+            style: TextStyle(
+                fontSize: 20,
+                color: Color(0xff012113),
+                fontWeight: FontWeight.bold)),
         const Spacer(),
         InkWell(
-          child: Text(
-            "view_all".tr(),
-            style: TextStyle(
-                fontSize: 16,
-                color: Color(0xff54826D),
-                fontWeight: FontWeight.w500),
-          ),
+          child: Text("view_all".tr(),
+              style: TextStyle(
+                  fontSize: 16,
+                  color: Color(0xff54826D),
+                  fontWeight: FontWeight.w500)),
           onTap: () {
-            Navigator.of(context).push(
-              MaterialPageRoute(
+            Navigator.of(context).push(MaterialPageRoute(
                 fullscreenDialog: true,
                 builder: (context) => Scaffold(
-                  appBar: AppBar(
-                    title: Text("All Projects", style: TextStyle(fontSize: 20)),
-                  ),
-                  body: Viewitems(projects: projects),
-                ),
-              ),
-            );
+                    appBar: AppBar(
+                        title: Text("All Projects",
+                            style: TextStyle(fontSize: 20))),
+                    body: Viewitems(projects: projects))));
           },
         ),
         const SizedBox(width: 10),
@@ -638,17 +582,17 @@ class _HomepageState extends State<Homepage> {
     return SizedBox(
       height: 320,
       child: PageView.builder(
-        itemCount: projectList.length > 3 ? length : projectList.length,
+        itemCount: length,
         scrollDirection: Axis.horizontal,
         onPageChanged: onChanged,
         itemBuilder: (context, index) {
+          if (index >= projectList.length) return SizedBox.shrink();
           final imageUrlList = projectList[index]['image_urls'];
           final imageUrl = (imageUrlList is List && imageUrlList.isNotEmpty)
               ? imageUrlList[0]
-              : null; //here
+              : null;
           final ownerImage =
               projectList[index]['owner_image'] ?? 'lib/img/person1.png';
-
           final screenWidth = MediaQuery.of(context).size.width;
           final imageSize = screenWidth * 0.9;
 
@@ -667,18 +611,14 @@ class _HomepageState extends State<Homepage> {
                     child: ClipRRect(
                       borderRadius: BorderRadius.circular(25),
                       child: imageUrl != null && imageUrl != ''
-                          ? Image.network(
-                              imageUrl,
+                          ? Image.network(imageUrl,
                               fit: BoxFit.cover,
                               width: imageSize,
-                              height: imageSize * 0.8,
-                            )
-                          : Image.asset(
-                              'lib/img/placeholder.png',
+                              height: imageSize * 0.8)
+                          : Image.asset('lib/img/placeholder.png',
                               fit: BoxFit.cover,
                               width: imageSize,
-                              height: imageSize * 0.8,
-                            ),
+                              height: imageSize * 0.8),
                     ),
                   ),
                   Padding(
@@ -690,12 +630,8 @@ class _HomepageState extends State<Homepage> {
                         width: 45,
                         height: 45,
                         errorBuilder: (context, error, stackTrace) {
-                          return Image.asset(
-                            'lib/img/person1.png',
-                            fit: BoxFit.cover,
-                            width: 45,
-                            height: 45,
-                          );
+                          return Image.asset('lib/img/person1.png',
+                              fit: BoxFit.cover, width: 45, height: 45);
                         },
                       ),
                     ),
@@ -749,7 +685,7 @@ class _HomepageState extends State<Homepage> {
                 margin: const EdgeInsets.symmetric(horizontal: 4),
                 decoration: BoxDecoration(
                   color: currentIndex == index
-                      ? Color(0xff012113)
+                      ? Color(0xff009688)
                       : Color(0xffD9D9D9),
                   borderRadius: BorderRadius.circular(5),
                 ),
@@ -778,22 +714,14 @@ class _HomepageState extends State<Homepage> {
           ],
         ),
         borderRadius: const BorderRadius.only(
-          bottomLeft: Radius.circular(30),
-          bottomRight: Radius.circular(30),
-        ),
+            bottomLeft: Radius.circular(30), bottomRight: Radius.circular(30)),
         boxShadow: [
-          BoxShadow(
-            color: Colors.black26,
-            blurRadius: 10,
-            offset: Offset(0, 2),
-          ),
+          BoxShadow(color: Colors.black26, blurRadius: 10, offset: Offset(0, 2))
         ],
       ),
       child: Column(
         children: [
-          SizedBox(
-            height: 12,
-          ),
+          SizedBox(height: 12),
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 10),
             child: Row(
@@ -801,31 +729,22 @@ class _HomepageState extends State<Homepage> {
               children: [
                 Row(
                   children: [
-                    Image.asset(
-                      'lib/img/logo.png',
-                      height: 30,
-                      width: 30,
-                    ),
+                    Image.asset('lib/img/logo.png', height: 30, width: 30),
                     SizedBox(width: 10),
                     user == null
                         ? ElevatedButton(
                             style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.transparent,
-                              shadowColor: Colors.transparent,
-                              elevation: 0,
-                              foregroundColor: Colors.white,
-                            ),
+                                backgroundColor: Colors.transparent,
+                                shadowColor: Colors.transparent,
+                                elevation: 0,
+                                foregroundColor: Colors.white),
                             onPressed: () {
-                              Navigator.of(context).push(
-                                MaterialPageRoute(
-                                    builder: (context) => const LoginPage()),
-                              );
+                              Navigator.of(context).push(MaterialPageRoute(
+                                  builder: (context) => const LoginPage()));
                             },
-                            child: Text(
-                              "Login",
-                              style:
-                                  TextStyle(fontSize: 16, color: Colors.white),
-                            ),
+                            child: Text("Login",
+                                style: TextStyle(
+                                    fontSize: 16, color: Colors.white)),
                           )
                         : Text("Mollni ${user?.displayName ?? ''}",
                             style: TextStyle(
@@ -864,16 +783,11 @@ class _HomepageState extends State<Homepage> {
                       padding:
                           EdgeInsets.symmetric(horizontal: 12, vertical: 5),
                       decoration: BoxDecoration(
-                        color: Color(0xff54826D).withOpacity(0.7),
-                        borderRadius: BorderRadius.circular(20),
-                      ),
+                          color: Color(0xff54826D).withOpacity(0.7),
+                          borderRadius: BorderRadius.circular(20)),
                       child: Center(
-                        child: Image.asset(
-                          'lib/img/img_${index + 1}.png',
-                          width: 30,
-                          height: 30,
-                        ),
-                      ),
+                          child: Image.asset('lib/img/img_${index + 1}.png',
+                              width: 30, height: 30)),
                     ),
                     onTap: () {
                       String? selectedCategory = categories[index];
@@ -898,7 +812,6 @@ class _HomepageState extends State<Homepage> {
         setState(() {
           _selectedIndex = index;
         });
-
         Widget getPageForIndex(int index) {
           if (index == 1) {
             if (user != null && (_userData?['admin'] ?? false)) {
@@ -921,41 +834,31 @@ class _HomepageState extends State<Homepage> {
               .push(MaterialPageRoute(builder: (context) => page));
         }
       },
-      child: Icon(
-        icon,
-        color: _selectedIndex == index ? Colors.white : Colors.white70,
-      ),
+      child: Icon(icon,
+          color: _selectedIndex == index ? Colors.white : Colors.white70),
     );
   }
 
-  Future<void> deletePost({
-    required BuildContext context,
-    required int postNumber,
-  }) async {
+  Future<void> deletePost(
+      {required BuildContext context, required int postNumber}) async {
     try {
       debugPrint(
           'Deleting post - Number: $postNumber (Type: ${postNumber.runtimeType})');
       debugPrint('Current user UID: ${user!.uid}');
-
       final querySnapshot = await FirebaseFirestore.instance
           .collection('post')
           .where('postNumber', isEqualTo: postNumber)
           .where('user_id', isEqualTo: user!.uid)
           .get();
-
       final docId = querySnapshot.docs.first.id;
       debugPrint('Deleting document ID: $docId');
-
       await FirebaseFirestore.instance.collection('post').doc(docId).delete();
-
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Post deleted successfully!')),
-      );
+          const SnackBar(content: Text('Post deleted successfully!')));
     } catch (e) {
       debugPrint('Delete error: $e');
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error: ${e.toString()}')),
-      );
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text('Error: ${e.toString()}')));
     }
   }
 
@@ -963,112 +866,78 @@ class _HomepageState extends State<Homepage> {
       int postNumber, String ownerUserId, String reporttype) async {
     final TextEditingController reasonController = TextEditingController();
     final currentUserId = FirebaseAuth.instance.currentUser?.uid;
-
     if (currentUserId == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
           content: Text("You must be logged in to report."),
-          backgroundColor: Colors.red,
-        ),
-      );
+          backgroundColor: Colors.red));
       return;
     }
-
     try {
       final querySnapshot = await FirebaseFirestore.instance
           .collection('post')
           .where('postNumber', isEqualTo: postNumber)
           .where('user_id', isEqualTo: ownerUserId)
           .get();
-
       if (querySnapshot.docs.isEmpty) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text("error ,not found."),
-            backgroundColor: Colors.red,
-          ),
-        );
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+            content: Text("error ,not found."), backgroundColor: Colors.red));
         return;
       }
-
       final projectDoc = querySnapshot.docs.first;
-
       final reportsSnapshot = await projectDoc.reference
           .collection('reports')
           .where('userUid', isEqualTo: currentUserId)
           .where('reporttype', isEqualTo: reporttype)
           .get();
-
       if (reportsSnapshot.docs.isNotEmpty) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
             content: Text("You have already reported this!"),
-            backgroundColor: Colors.orange,
-          ),
-        );
+            backgroundColor: Colors.orange));
         return;
       }
-
       showDialog(
-        context: context,
-        builder: (context) {
-          return AlertDialog(
-            title: const Text("Report Post"),
-            content: TextField(
-              controller: reasonController,
-              decoration: const InputDecoration(
-                hintText: "Enter reason for reporting",
-              ),
-            ),
-            actions: [
-              TextButton(
-                child: const Text("Cancel"),
-                onPressed: () => Navigator.of(context).pop(),
-              ),
-              TextButton(
-                child: const Text("Submit"),
-                onPressed: () async {
-                  final reason = reasonController.text.trim().isEmpty
-                      ? ""
-                      : reasonController.text.trim();
-
-                  Navigator.of(context).pop();
-
-                  try {
-                    await projectDoc.reference.collection('reports').add({
-                      'userUid': currentUserId,
-                      'reason': reason,
-                      'timeOfReport': Timestamp.now(),
-                      'reporttype': reporttype
-                    });
-
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text("Thanks for reporting!"),
-                        backgroundColor: Color.fromARGB(255, 117, 43, 38),
-                      ),
-                    );
-                  } catch (e) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text("Error: $e"),
-                        backgroundColor: Colors.red,
-                      ),
-                    );
-                  }
-                },
-              ),
-            ],
-          );
-        },
-      );
+          context: context,
+          builder: (context) {
+            return AlertDialog(
+                title: const Text("Report Post"),
+                content: TextField(
+                    controller: reasonController,
+                    decoration: const InputDecoration(
+                        hintText: "Enter reason for reporting")),
+                actions: [
+                  TextButton(
+                      child: const Text("Cancel"),
+                      onPressed: () => Navigator.of(context).pop()),
+                  TextButton(
+                      child: const Text("Submit"),
+                      onPressed: () async {
+                        final reason = reasonController.text.trim().isEmpty
+                            ? ""
+                            : reasonController.text.trim();
+                        Navigator.of(context).pop();
+                        try {
+                          await projectDoc.reference.collection('reports').add({
+                            'userUid': currentUserId,
+                            'reason': reason,
+                            'timeOfReport': Timestamp.now(),
+                            'reporttype': reporttype
+                          });
+                          ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                  content: Text("Thanks for reporting!"),
+                                  backgroundColor:
+                                      Color.fromARGB(255, 117, 43, 38)));
+                        } catch (e) {
+                          ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                              content: Text("Error: $e"),
+                              backgroundColor: Colors.red));
+                        }
+                      })
+                ]);
+          });
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text("Error: $e"),
-          backgroundColor: Colors.red,
-        ),
-      );
+          SnackBar(content: Text("Error: $e"), backgroundColor: Colors.red));
     }
   }
 

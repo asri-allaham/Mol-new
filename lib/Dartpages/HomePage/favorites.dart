@@ -52,17 +52,35 @@ class _FavoritesState extends State<Favorites> {
   Future<void> removeFavorite(int projectNumber, String userId) async {
     final uid = user?.uid;
     if (uid != null) {
-      final favoritesSnapshot = await FirebaseFirestore.instance
-          .collection('favorites')
-          .where('currentUserId', isEqualTo: uid)
-          .where('numberProject', isEqualTo: projectNumber)
-          .where('userID_owner', isEqualTo: userId)
-          .get();
+      try {
+        final favoritesSnapshot = await FirebaseFirestore.instance
+            .collection('favorites')
+            .where('currentUserId', isEqualTo: uid)
+            .where('numberProject', isEqualTo: projectNumber)
+            .where('userID_owner', isEqualTo: userId)
+            .get();
 
-      for (var doc in favoritesSnapshot.docs) {
-        await doc.reference.delete();
+        for (var doc in favoritesSnapshot.docs) {
+          await doc.reference.delete();
+        }
+
+        // إزالة المشروع من القائمة المحلية فورًا
+        setState(() {
+          final index = Projects.indexWhere((project) =>
+              project['projectNumber'] == projectNumber &&
+              project['user_id'] == userId);
+          if (index != -1) {
+            Projects.removeAt(index);
+          }
+        });
+
+        // إعادة تحميل الصفحة الحالية أو إغلاقها إذا كانت مفتوحة
+        if (Navigator.of(context).canPop()) {
+          Navigator.of(context).pop();
+        }
+      } catch (e) {
+        print('Error removing favorite: $e');
       }
-      await fetchUserFavorites();
     }
   }
 
@@ -230,17 +248,18 @@ class _FavoritesState extends State<Favorites> {
                                     ],
                                   ),
                                 ),
-                                IconButton(
-                                  icon: const Icon(
-                                    Icons.heart_broken,
-                                    color: Color(0xffEF0000),
-                                    size: 28,
-                                  ),
-                                  onPressed: () {
-                                    removeFavorite(project['projectNumber'],
-                                        project['user_id']);
-                                  },
-                                ),
+                                Column(
+                                  children: [
+                                    SizedBox(
+                                      height: 22,
+                                    ),
+                                    Icon(
+                                      Icons.favorite,
+                                      size: 30,
+                                      color: Colors.red,
+                                    )
+                                  ],
+                                )
                               ],
                             ),
                           ),
