@@ -33,7 +33,7 @@ class _NotificationsPageState extends State<Notifications> {
           onPressed: () {
             Navigator.of(context).push(
               MaterialPageRoute(
-                builder: (context) => ProfileInformation(
+                builder: (context) => Profile(
                     // sound: _soundEnabled ? 'on' : 'off', not used yet
                     ),
               ),

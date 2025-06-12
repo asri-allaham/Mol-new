@@ -4,6 +4,7 @@ import 'package:Mollni/Dartpages/Communicate%20with%20investor/business%20owners
 import 'package:Mollni/Dartpages/CustomWidget/SearchBox.dart';
 import 'package:Mollni/Dartpages/HomePage/placeholders.dart';
 import 'package:Mollni/Dartpages/HomePage/viewItems.dart';
+import 'package:Mollni/Dartpages/UserData/Sititing.dart';
 import 'package:Mollni/Dartpages/UserData/profile_information.dart';
 import 'package:Mollni/Dartpages/projectadd%20post%20Contracts/TapsSystem.dart';
 import 'package:Mollni/Dartpages/sighUpIn/LoginPage.dart';
@@ -753,7 +754,18 @@ class _HomepageState extends State<Homepage> {
                                 fontWeight: FontWeight.bold)),
                   ],
                 ),
-                Icon(Icons.notifications, color: Colors.white, size: 30),
+                Row(
+                  children: [
+                    Icon(Icons.notifications, color: Colors.white, size: 30),
+                    IconButton(
+                        onPressed: () {
+                          Navigator.of(context).push(MaterialPageRoute(
+                              builder: (context) => ProfileInformation()));
+                        },
+                        icon:
+                            Icon(Icons.settings, color: Colors.white, size: 30))
+                  ],
+                )
               ],
             ),
           ),
@@ -821,9 +833,7 @@ class _HomepageState extends State<Homepage> {
           } else if (index == 2) {
             return user != null ? MessagesPage() : const LoginPage();
           } else if (index == 3) {
-            return user != null
-                ? const ProfileInformation()
-                : const LoginPage();
+            return user != null ? const Profile() : const LoginPage();
           }
           return SizedBox();
         }

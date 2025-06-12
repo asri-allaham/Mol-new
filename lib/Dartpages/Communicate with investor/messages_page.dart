@@ -474,8 +474,7 @@ class _MessagesPageState extends State<MessagesPage> {
                             onPressed: () {
                               if (user != null) {
                                 Navigator.of(context).push(MaterialPageRoute(
-                                    builder: (context) =>
-                                        const ProfileInformation()));
+                                    builder: (context) => const Profile()));
                               } else {
                                 Navigator.of(context).push(MaterialPageRoute(
                                     builder: (context) => const LoginPage()));
@@ -950,8 +949,8 @@ class _MessagesPageState extends State<MessagesPage> {
           }
         } else if (_selectedIndex == 3) {
           if (user != null) {
-            Navigator.of(context).push(MaterialPageRoute(
-                builder: (context) => const ProfileInformation()));
+            Navigator.of(context)
+                .push(MaterialPageRoute(builder: (context) => const Profile()));
           } else {
             Navigator.of(context).push(
                 MaterialPageRoute(builder: (context) => const LoginPage()));

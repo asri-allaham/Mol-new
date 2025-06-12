@@ -1,4 +1,5 @@
 import 'package:Mollni/Dartpages/HomePage/Home_page.dart';
+import 'package:Mollni/Dartpages/sighUpIn/Forgot_password.dart';
 import 'package:Mollni/Dartpages/sighUpIn/Registration.dart';
 import 'package:Mollni/Dartpages/sighUpIn/login_state.dart';
 import 'package:Mollni/simple_functions/botton.dart';
@@ -205,7 +206,7 @@ class _LoginPageState extends State<LoginPage> {
                   GestureDetector(
                     onTap: () {
                       Navigator.of(context).pushReplacement(MaterialPageRoute(
-                          builder: (context) => RegisterScreen()));
+                          builder: (context) => ForgotPassword()));
                     },
                     child: const Text(
                       "Forgot Password?",

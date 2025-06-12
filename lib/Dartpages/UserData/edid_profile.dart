@@ -207,8 +207,8 @@ class _EdidProfileState extends State<EdidProfile> {
                   size: 40,
                 ),
                 onPressed: () {
-                  Navigator.of(context).pushReplacement(MaterialPageRoute(
-                      builder: (context) => const ProfileInformation()));
+                  Navigator.of(context).pushReplacement(
+                      MaterialPageRoute(builder: (context) => const Profile()));
                 },
               ),
             ],

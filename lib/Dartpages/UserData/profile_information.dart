@@ -1,36 +1,19 @@
-import 'package:Mollni/Dartpages/Communicate%20with%20investor/business%20owners/messages_page.dart';
-import 'package:Mollni/Dartpages/HomePage/Home_page.dart';
-import 'package:Mollni/Dartpages/HomePage/favorites.dart';
-import 'package:Mollni/Dartpages/projectadd%20post%20Contracts/ProjectAdd.dart';
-import 'package:Mollni/Dartpages/sighUpIn/LoginPage.dart';
-import 'package:Mollni/Dartpages/sighUpIn/login_state.dart';
-import 'package:Mollni/i18n/LanguageScreen.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:easy_localization/easy_localization.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
-import 'package:flutter_chat_ui/flutter_chat_ui.dart';
-import 'package:provider/provider.dart';
-import 'privacy.dart';
-import 'edit_profile.dart';
-import '../../simple_functions/Language.dart';
-import 'Notifications.dart';
-import 'profile info display/UIDisplay.dart';
 
-class ProfileInformation extends StatefulWidget {
-  const ProfileInformation({super.key});
+class Profile extends StatefulWidget {
+  const Profile({super.key});
 
   @override
-  State<ProfileInformation> createState() => _ProfileInformationState();
+  State<Profile> createState() => _MyProfile();
 }
 
-class _ProfileInformationState extends State<ProfileInformation> {
+class _MyProfile extends State<Profile> {
+  User? user;
   Map<String, dynamic>? _userData;
-  bool _loading = true;
-  bool isDarkMode = false;
-  int _selectedIndex = 0;
-  final User? user = FirebaseAuth.instance.currentUser;
+  List<Map<String, dynamic>> projects = [], posts = [];
+  bool _isLoading = true;
 
   @override
   void initState() {
@@ -39,339 +22,249 @@ class _ProfileInformationState extends State<ProfileInformation> {
   }
 
   Future<void> fetchUserData() async {
-    final uid = FirebaseAuth.instance.currentUser?.uid;
+    await FirebaseAuth.instance.currentUser?.reload();
+    user = FirebaseAuth.instance.currentUser;
+    final uid = user?.uid;
     if (uid != null) {
       final doc =
           await FirebaseFirestore.instance.collection('users').doc(uid).get();
       if (doc.exists) {
         setState(() {
           _userData = doc.data();
-          _loading = false;
         });
       }
     }
   }
 
+  Future<void> fetchProjectsAndOwners() async {
+    if (user == null) return; // Avoid null crash
+
+    try {
+      final query = FirebaseFirestore.instance.collection('projects');
+      final snapshot = await query.where('user_id', isEqualTo: user!.uid).get();
+
+      List<Map<String, dynamic>> loadedProjects = [];
+
+      for (var doc in snapshot.docs) {
+        final projectData = doc.data();
+
+        final adminAccepted = projectData['Adminacceptance'] ?? false;
+        final hasImage = projectData['image_urls'] != null &&
+            projectData['image_urls'].isNotEmpty;
+
+        if (adminAccepted && hasImage) {
+          loadedProjects.add(projectData);
+        }
+      }
+
+      setState(() {
+        projects = loadedProjects;
+        _isLoading = false;
+      });
+
+      print("✅ Loaded ${projects.length} approved projects with images");
+    } catch (e) {
+      setState(() {
+        _isLoading = false;
+      });
+      print("❌ Error fetching projects: $e");
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
-    final user = FirebaseAuth.instance.currentUser;
-    final appLang = Provider.of<AppLanguageProvider>(context);
-
     return Scaffold(
       appBar: AppBar(
-        toolbarHeight: 2,
-        backgroundColor: Color(0xffD2E4DC),
+        backgroundColor: const Color(0xffE4F5ED),
         automaticallyImplyLeading: false,
+        toolbarHeight: 30,
+        title: InkWell(
+          onTap: () => Navigator.pop(context),
+          child: const Icon(
+            Icons.arrow_back_ios_new,
+            color: Color(0xff012113),
+          ),
+        ),
       ),
-      backgroundColor: const Color(0xffECECEC),
-      body: _loading
+      body: _userData == null
           ? const Center(child: CircularProgressIndicator())
           : ListView(
-              physics: NeverScrollableScrollPhysics(),
+              physics: const NeverScrollableScrollPhysics(),
               children: [
-                Container(
-                  height: 30,
-                  color: Color(0xffD2E4DC),
-                ),
-                Container(
-                  color: const Color(0xffD2E4DC),
-                  child: Row(
-                    children: [
-                      SizedBox(width: 18),
-                      Icon(Icons.notifications,
-                          size: 35, color: Color(0xff002114)),
-                      IconButton(
-                        onPressed: () {
-                          Navigator.of(context).push(MaterialPageRoute(
-                              builder: (context) => Favorites()));
-                        },
-                        icon: Icon(Icons.favorite,
-                            size: 35, color: Color.fromARGB(255, 182, 23, 23)),
+                Stack(
+                  children: [
+                    SizedBox(
+                      width: MediaQuery.of(context).size.width,
+                      height: 260,
+                      child: Image.asset(
+                        "lib/img/profile444.png",
+                        fit: BoxFit.fill,
                       ),
-                      Spacer(),
-                      Icon(Icons.restore, size: 35, color: Color(0xff002114)),
-                      SizedBox(width: 23),
-                      Icon(Icons.menu, size: 35, color: Color(0xff002114)),
-                      SizedBox(width: 17),
-                    ],
-                  ),
-                ),
-                Center(
-                  child: Stack(
-                    children: [
-                      Image.asset('lib/img/img.png',
-                          width: 500, height: 198, fit: BoxFit.cover),
-                      Positioned(
-                        bottom: 5,
-                        right: 130,
-                        child: Stack(
+                    ),
+                    Column(
+                      children: [
+                        Align(
+                          alignment: Alignment.bottomCenter,
+                          child: Container(
+                            margin: const EdgeInsets.only(bottom: 10),
+                            decoration:
+                                const BoxDecoration(shape: BoxShape.circle),
+                            child: CircleAvatar(
+                              radius: 40,
+                              backgroundImage: _userData!['imageUrl'] != null
+                                  ? NetworkImage(_userData!['imageUrl'])
+                                  : const AssetImage(
+                                          'lib/Images/DefaultProfile.jpg')
+                                      as ImageProvider,
+                            ),
+                          ),
+                        ),
+                        Text(
+                          _userData?['fullName'] ?? '',
+                          style: const TextStyle(
+                              color: Color(0xff012113), fontSize: 20),
+                        ),
+                        Text(
+                          "@${_userData?['username'] ?? ''}",
+                          style: const TextStyle(
+                              color: Color(0xff012113), fontSize: 14),
+                        ),
+                        const SizedBox(height: 10),
+                        Row(
                           children: [
-                            Container(
-                              width: 140,
-                              height: 140,
-                              decoration: BoxDecoration(
-                                borderRadius: BorderRadius.circular(100),
-                                boxShadow: [
-                                  BoxShadow(
-                                    color: Colors.black.withOpacity(0.2),
-                                    blurRadius: 10,
-                                    offset: const Offset(0, 5),
-                                  ),
-                                ],
-                              ),
-                              child: ClipRRect(
-                                borderRadius: BorderRadius.circular(100),
-                                child: (_userData?['imageUrl'] as String?)
-                                            ?.isNotEmpty ==
-                                        true
-                                    ? Image.network(_userData!['imageUrl'],
-                                        fit: BoxFit.cover)
-                                    : Image.asset("lib/img/person1.png",
-                                        fit: BoxFit.cover),
-                              ),
-                            ),
-                            Positioned(
-                              bottom: 5,
-                              right: 5,
-                              child: GestureDetector(
-                                onTap: () {},
-                                child: Container(
-                                  padding: const EdgeInsets.all(6),
-                                  decoration: BoxDecoration(
-                                    color: Colors.white,
-                                    borderRadius: BorderRadius.circular(20),
-                                    boxShadow: [
-                                      BoxShadow(
-                                        color: Colors.black.withOpacity(0.2),
-                                        blurRadius: 4,
-                                        offset: const Offset(0, 2),
-                                      ),
-                                    ],
-                                  ),
-                                  child: const Icon(Icons.camera_alt,
-                                      color: Color(0xff00130B), size: 25),
-                                ),
-                              ),
-                            ),
+                            const Spacer(),
+                            _buildIcon(Icons.chat),
+                            const Spacer(),
+                            _buildIcon(Icons.more_horiz, size: 32),
+                            const Spacer(),
                           ],
                         ),
+                      ],
+                    ),
+                  ],
+                ),
+                _buildInfoSection("nick Name", _userData?['username']),
+                _buildInfoSection("full Name", _userData?['fullName']),
+                _buildInfoSection("Email Address", _userData?['email']),
+                _buildInfoSection("Address", _userData?['address']),
+                _buildInfoSection("Phone Number", _userData?['phone']),
+                const SizedBox(height: 40),
+                Row(
+                  children: [
+                    const Text("Business ideas",
+                        style:
+                            TextStyle(color: Color(0xff54826D), fontSize: 17)),
+                    SizedBox(width: MediaQuery.of(context).size.width / 2.3),
+                    const Text("View All",
+                        style:
+                            TextStyle(color: Color(0xff012C19), fontSize: 17)),
+                  ],
+                ),
+                const SizedBox(height: 20),
+                Row(
+                  children: [
+                    const Padding(
+                      padding: EdgeInsets.symmetric(horizontal: 22.0),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text("Projects",
+                              style: TextStyle(
+                                  color: Color(0xff54826D), fontSize: 17)),
+                          Text("View All",
+                              style: TextStyle(
+                                  color: Color(0xff012C19), fontSize: 17)),
+                        ],
                       ),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 8),
-                Center(
-                  child: Text(
-                    _userData?['name'] ?? user?.displayName ?? 'No name',
-                    style: const TextStyle(
-                        fontSize: 22,
-                        fontWeight: FontWeight.bold,
-                        color: Color(0xff012113)),
-                  ),
-                ),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    const Icon(Icons.email, size: 20, color: Color(0xff002114)),
-                    const SizedBox(width: 5),
-                    Text(
-                      _userData?['email'] ?? user?.email ?? 'No email',
-                      style: const TextStyle(
-                          fontSize: 16, color: Color(0xff012113)),
+                    ),
+                    const SizedBox(height: 20),
+                    SizedBox(
+                      height: 120,
+                      child: projects.isEmpty
+                          ? const Center(child: Text("No projects to display"))
+                          : ListView.separated(
+                              scrollDirection: Axis.horizontal,
+                              padding:
+                                  const EdgeInsets.symmetric(horizontal: 16),
+                              itemCount: projects.length,
+                              separatorBuilder: (_, __) =>
+                                  const SizedBox(width: 15),
+                              itemBuilder: (context, index) {
+                                final project = projects[index];
+                                final imageUrl = project['image_urls']
+                                    [0]; // First image only
+                                return _buildIdeaImageFromUrl(imageUrl);
+                              },
+                            ),
                     ),
                   ],
-                ),
-                const SizedBox(height: 5),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    const Icon(Icons.phone, size: 20, color: Color(0xff002114)),
-                    const SizedBox(width: 5),
-                    Text(
-                      _userData?['phone'] ?? 'No phone',
-                      style: const TextStyle(
-                          fontSize: 16, color: Color(0xff012113)),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 15),
-                _buildSettingsSection(context, appLang),
+                )
               ],
             ),
-      bottomNavigationBar: Positioned(
-        left: 0,
-        right: 0,
-        bottom: 0,
-        child: Container(
-          height: 60,
-          decoration: const BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topCenter,
-              end: Alignment.bottomCenter,
-              colors: [
-                Color(0xff54826D),
-                Color(0xff03361F),
-                Color(0xff03361F),
-                Color(0xff03361F),
-                Color(0xff03361F),
-              ],
-            ),
-            borderRadius: BorderRadius.only(
-              topLeft: Radius.circular(20),
-              topRight: Radius.circular(20),
-            ),
-          ),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceAround,
-            children: [
-              _buildNavItem(Icons.home, 0),
-              _buildNavItem(Icons.add, 1),
-              _buildNavItem(Icons.message, 2),
-              _buildNavItem(Icons.person, 3),
-            ],
-          ),
+    );
+  }
+
+  Widget _buildIdeaImageFromUrl(String imageUrl) {
+    return Container(
+      width: 106,
+      height: 109,
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(15),
+        image: DecorationImage(
+          image: NetworkImage(imageUrl),
+          fit: BoxFit.cover,
         ),
       ),
     );
   }
 
-  Widget _buildSettingsSection(
-      BuildContext context, AppLanguageProvider appLang) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 20.0),
-      child: Column(
-        children: [
-          buildSettingsGroup([
-            buildRow(
-              icon: Icons.newspaper_sharp,
-              label: "Edit profile information",
-              onTap: () => Navigator.of(context)
-                  .push(MaterialPageRoute(builder: (context) => EdidProfile())),
-            ),
-            buildRow(
-              icon: Icons.notifications,
-              label: "Notifications",
-              onTap: () => Navigator.of(context).push(
-                  MaterialPageRoute(builder: (context) => Notifications())),
-            ),
-            buildRow(
-              icon: Icons.translate,
-              label: "Language".tr(),
-              onTap: () async {
-                final selected = await Navigator.push<int>(
-                  context,
-                  MaterialPageRoute(builder: (_) => LanguageScreen()),
-                );
-                if (selected != null) {
-                  try {
-                    final appLanguage = Provider.of<AppLanguageProvider>(
-                        context,
-                        listen: false);
-                    await appLanguage.changeLanguageByIndex(selected);
-                    await context.setLocale(appLanguage.appLocal);
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text('Need a restart to applay it..')),
-                    ); // Phoenix.rebirth(context);
-                  } catch (e) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text('chose dirfint language!')),
-                    );
-                  }
-                }
-              },
-            ),
-          ]),
-          const SizedBox(height: 8),
-          buildSettingsGroup([
-            buildRow(icon: Icons.security, label: "Security"),
-            buildRow(
-              icon: Icons.color_lens,
-              label: "Theme",
-              onTap: () => setState(() => isDarkMode = !isDarkMode),
-              trailing: isDarkMode ? "Dark mode" : "Light mode",
-            ),
-          ]),
-          const SizedBox(height: 8),
-          buildSettingsGroup([
-            buildRow(icon: Icons.help_outline, label: "Help & Support"),
-            buildRow(icon: Icons.contact_mail, label: "Contact us"),
-            buildRow(
-              icon: Icons.lock_outline,
-              label: "Privacy policy",
-              onTap: () => Navigator.of(context)
-                  .push(MaterialPageRoute(builder: (_) => privacy())),
-            ),
-          ]),
-          const SizedBox(height: 8),
-          ElevatedButton(
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xffE5E5E5),
-                minimumSize: const Size(double.infinity, 50),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                alignment: Alignment.centerLeft,
-              ),
-              onPressed: () async {
-                await Provider.of<LoginState>(context, listen: false).logout();
-                Navigator.of(context).push(
-                    MaterialPageRoute(builder: (context) => const Homepage()));
-              },
-              child: Row(
-                children: [
-                  SizedBox(
-                    width: 6,
-                  ),
-                  Icon(
-                    Icons.logout,
-                    size: 20,
-                    color: Colors.red,
-                  ),
-                  Text(
-                    "    Logout",
-                    style: TextStyle(color: Colors.red, fontSize: 18),
-                  ),
-                ],
-              ))
-        ],
-      ),
+  Widget _buildIcon(IconData icon, {double size = 28}) {
+    return Container(
+      width: 50,
+      height: 50,
+      decoration: BoxDecoration(
+          color: const Color(0xff012113),
+          borderRadius: BorderRadius.circular(100)),
+      child: Icon(icon, color: Colors.white, size: size),
     );
   }
 
-  Widget _buildNavItem(IconData icon, int index) {
-    return GestureDetector(
-      onTap: () {
-        setState(() {
-          _selectedIndex = index;
-        });
-        if (_selectedIndex == 0) {
-          if (user != null) {
-            Navigator.of(context).push(
-                MaterialPageRoute(builder: (context) => const Homepage()));
-          }
-        } else if (_selectedIndex == 1) {
-          if (user != null) {
-            Navigator.of(context).push(
-                MaterialPageRoute(builder: (context) => const ProjectAdd()));
-          } else {
-            Navigator.of(context).push(
-                MaterialPageRoute(builder: (context) => const LoginPage()));
-          }
-        } else if (_selectedIndex == 2) {
-          if (user != null) {
-            Navigator.of(context).push(MaterialPageRoute(
-                builder: (context) => MessagesPage(
-                      userId: null,
-                    )));
-          } else {
-            Navigator.of(context).push(
-                MaterialPageRoute(builder: (context) => const LoginPage()));
-          }
-        }
-      },
-      child: Icon(
-        icon,
-        color: Colors.white,
+  Widget _buildInfoSection(String title, String? value) {
+    return Row(
+      children: [
+        const SizedBox(width: 22),
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const SizedBox(height: 23),
+            Text(title,
+                style: const TextStyle(color: Color(0xff54826D), fontSize: 18)),
+            Row(
+              children: [
+                const SizedBox(width: 6, height: 35),
+                Text(
+                  value ?? 'Not provided',
+                  style:
+                      const TextStyle(color: Color(0xff012113), fontSize: 24),
+                )
+              ],
+            )
+          ],
+        )
+      ],
+    );
+  }
+
+  Widget _buildIdeaImage(String assetPath) {
+    return Container(
+      width: 106,
+      height: 109,
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(15),
+        image: DecorationImage(
+          image: AssetImage(assetPath),
+          fit: BoxFit.cover,
+        ),
       ),
     );
   }

@@ -1,6 +1,7 @@
 import 'package:Mollni/Dartpages/Communicate%20with%20investor/business%20owners/messages_page.dart';
 import 'package:Mollni/Dartpages/HomePage/Home_page.dart';
 import 'package:Mollni/Dartpages/HomePage/favorites.dart';
+import 'package:Mollni/Dartpages/UserData/edid_profile.dart';
 import 'package:Mollni/Dartpages/projectadd%20post%20Contracts/ProjectAdd.dart';
 import 'package:Mollni/Dartpages/sighUpIn/LoginPage.dart';
 import 'package:Mollni/Dartpages/sighUpIn/login_state.dart';
@@ -9,11 +10,10 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:easy_localization/easy_localization.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
-import 'package:flutter_chat_ui/flutter_chat_ui.dart';
 import 'package:provider/provider.dart';
+// ignore: depend_on_referenced_packages
+import 'package:url_launcher/url_launcher.dart';
 import 'privacy.dart';
-import 'edid_profile.dart';
 import '../../simple_functions/Language.dart';
 import 'Notifications.dart';
 import 'profile info display/UIDisplay.dart';
@@ -52,6 +52,17 @@ class _ProfileInformationState extends State<ProfileInformation> {
     }
   }
 
+  void _launchURL(String url) async {
+    final uri = Uri.parse(url);
+    if (await canLaunchUrl(uri)) {
+      await launchUrl(uri, mode: LaunchMode.externalApplication);
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Could not open the link')),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final user = FirebaseAuth.instance.currentUser;
@@ -69,41 +80,31 @@ class _ProfileInformationState extends State<ProfileInformation> {
           : ListView(
               physics: NeverScrollableScrollPhysics(),
               children: [
-                Container(
-                  height: 30,
-                  color: Color(0xffD2E4DC),
-                ),
+                Container(height: 30, color: Color(0xffD2E4DC)),
                 Container(
                   color: const Color(0xffD2E4DC),
-                  child: Row(
-                    children: [
-                      SizedBox(width: 18),
-                      Icon(Icons.notifications,
-                          size: 35, color: Color(0xff002114)),
-                      IconButton(
-                        onPressed: () {
-                          Navigator.of(context).push(MaterialPageRoute(
-                              builder: (context) => Favorites()));
-                        },
-                        icon: Icon(Icons.favorite,
-                            size: 35, color: Color.fromARGB(255, 182, 23, 23)),
-                      ),
-                      Spacer(),
-                      Icon(Icons.restore, size: 35, color: Color(0xff002114)),
-                      SizedBox(width: 23),
-                      Icon(Icons.menu, size: 35, color: Color(0xff002114)),
-                      SizedBox(width: 17),
-                    ],
-                  ),
+                  child: Row(children: [
+                    SizedBox(width: 18),
+                    Spacer(),
+                    SizedBox(width: 17),
+                    IconButton(
+                      onPressed: () {
+                        Navigator.of(context).push(MaterialPageRoute(
+                            builder: (context) => Favorites()));
+                      },
+                      icon: Icon(Icons.favorite,
+                          size: 35, color: Color.fromARGB(255, 182, 23, 23)),
+                    ),
+                  ]),
                 ),
                 Center(
                   child: Stack(
                     children: [
                       Image.asset('lib/img/img.png',
-                          width: 500, height: 198, fit: BoxFit.cover),
+                          width: 500, height: 210, fit: BoxFit.cover),
                       Positioned(
-                        bottom: 5,
-                        right: 130,
+                        bottom: 0,
+                        right: 127,
                         child: Stack(
                           children: [
                             Container(
@@ -128,29 +129,6 @@ class _ProfileInformationState extends State<ProfileInformation> {
                                         fit: BoxFit.cover)
                                     : Image.asset("lib/img/person1.png",
                                         fit: BoxFit.cover),
-                              ),
-                            ),
-                            Positioned(
-                              bottom: 5,
-                              right: 5,
-                              child: GestureDetector(
-                                onTap: () {},
-                                child: Container(
-                                  padding: const EdgeInsets.all(6),
-                                  decoration: BoxDecoration(
-                                    color: Colors.white,
-                                    borderRadius: BorderRadius.circular(20),
-                                    boxShadow: [
-                                      BoxShadow(
-                                        color: Colors.black.withOpacity(0.2),
-                                        blurRadius: 4,
-                                        offset: const Offset(0, 2),
-                                      ),
-                                    ],
-                                  ),
-                                  child: const Icon(Icons.camera_alt,
-                                      color: Color(0xff00130B), size: 25),
-                                ),
                               ),
                             ),
                           ],
@@ -241,6 +219,7 @@ class _ProfileInformationState extends State<ProfileInformation> {
       padding: const EdgeInsets.symmetric(horizontal: 20.0),
       child: Column(
         children: [
+          const SizedBox(height: 8),
           buildSettingsGroup([
             buildRow(
               icon: Icons.newspaper_sharp,
@@ -271,7 +250,7 @@ class _ProfileInformationState extends State<ProfileInformation> {
                     await context.setLocale(appLanguage.appLocal);
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(content: Text('Need a restart to applay it..')),
-                    ); // Phoenix.rebirth(context);
+                    );
                   } catch (e) {
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(content: Text('chose dirfint language!')),
@@ -281,20 +260,26 @@ class _ProfileInformationState extends State<ProfileInformation> {
               },
             ),
           ]),
-          const SizedBox(height: 8),
+          const SizedBox(height: 15),
           buildSettingsGroup([
             buildRow(icon: Icons.security, label: "Security"),
             buildRow(
-              icon: Icons.color_lens,
-              label: "Theme",
-              onTap: () => setState(() => isDarkMode = !isDarkMode),
-              trailing: isDarkMode ? "Dark mode" : "Light mode",
+              icon: Icons.contact_mail,
+              label: "Contact us",
+              onTap: () {
+                _launchURL("https://www.facebook.com/omar.abu.sirhan");
+              },
             ),
           ]),
-          const SizedBox(height: 8),
+          const SizedBox(height: 15),
           buildSettingsGroup([
-            buildRow(icon: Icons.help_outline, label: "Help & Support"),
-            buildRow(icon: Icons.contact_mail, label: "Contact us"),
+            buildRow(
+              icon: Icons.help_outline,
+              label: "Help & Support",
+              onTap: () {
+                _launchURL("mailto:omar123abu123sirhan@gmail.com");
+              },
+            ),
             buildRow(
               icon: Icons.lock_outline,
               label: "Privacy policy",
@@ -302,7 +287,7 @@ class _ProfileInformationState extends State<ProfileInformation> {
                   .push(MaterialPageRoute(builder: (_) => privacy())),
             ),
           ]),
-          const SizedBox(height: 8),
+          const SizedBox(height: 15),
           ElevatedButton(
               style: ElevatedButton.styleFrom(
                 backgroundColor: const Color(0xffE5E5E5),
@@ -319,18 +304,10 @@ class _ProfileInformationState extends State<ProfileInformation> {
               },
               child: Row(
                 children: [
-                  SizedBox(
-                    width: 6,
-                  ),
-                  Icon(
-                    Icons.logout,
-                    size: 20,
-                    color: Colors.red,
-                  ),
-                  Text(
-                    "    Logout",
-                    style: TextStyle(color: Colors.red, fontSize: 18),
-                  ),
+                  SizedBox(width: 6),
+                  Icon(Icons.logout, size: 20, color: Colors.red),
+                  Text("    Logout",
+                      style: TextStyle(color: Colors.red, fontSize: 18)),
                 ],
               ))
         ],
@@ -360,19 +337,14 @@ class _ProfileInformationState extends State<ProfileInformation> {
         } else if (_selectedIndex == 2) {
           if (user != null) {
             Navigator.of(context).push(MaterialPageRoute(
-                builder: (context) => MessagesPage(
-                      userId: null,
-                    )));
+                builder: (context) => MessagesPage(userId: null)));
           } else {
             Navigator.of(context).push(
                 MaterialPageRoute(builder: (context) => const LoginPage()));
           }
         }
       },
-      child: Icon(
-        icon,
-        color: Colors.white,
-      ),
+      child: Icon(icon, color: Colors.white),
     );
   }
 }
