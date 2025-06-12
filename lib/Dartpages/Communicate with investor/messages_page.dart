@@ -1,7 +1,7 @@
-import 'package:MOLLILE/Dartpages/HomePage/Home_page.dart';
-import 'package:MOLLILE/project%20add%20post/ProjectAdd.dart';
-import 'package:MOLLILE/Dartpages/UserData/profile_information.dart';
-import 'package:MOLLILE/Dartpages/sighUpIn/LoginPage.dart';
+import 'package:Mollni/Dartpages/HomePage/Home_page.dart';
+import 'package:Mollni/Dartpages/UserData/profile_information.dart';
+import 'package:Mollni/Dartpages/projectadd%20post%20Contracts/ProjectAdd.dart';
+import 'package:Mollni/Dartpages/sighUpIn/LoginPage.dart';
 import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -625,90 +625,90 @@ class _MessagesPageState extends State<MessagesPage> {
                                 return const SizedBox();
                               }
 
-                              return Dismissible(
-                                key: Key(userData['email']),
-                                direction: DismissDirection.endToStart,
-                                background: Container(
-                                  padding: const EdgeInsets.symmetric(
-                                      horizontal: 20),
-                                  alignment: Alignment.centerRight,
-                                  color: Colors.red,
-                                  child: Row(
-                                    mainAxisAlignment: MainAxisAlignment.end,
-                                    children: const [
-                                      Icon(Icons.delete, color: Colors.white),
-                                      SizedBox(width: 8),
-                                      Text(
-                                        "Delete",
-                                        style: TextStyle(
-                                          color: Colors.white,
-                                          fontWeight: FontWeight.bold,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                                confirmDismiss: (direction) async {
-                                  return await showDialog<bool>(
-                                        context: context,
-                                        builder: (context) => AlertDialog(
-                                          title: const Text("Confirm Deletion"),
-                                          content: Text(
-                                              "Delete chat with ${userData['username']}?"),
-                                          actions: [
-                                            TextButton(
-                                              child: const Text("Cancel"),
-                                              onPressed: () =>
-                                                  Navigator.pop(context, false),
-                                            ),
-                                            TextButton(
-                                              child: const Text("Delete",
-                                                  style: TextStyle(
-                                                      color: Colors.red)),
-                                              onPressed: () =>
-                                                  Navigator.pop(context, true),
-                                            ),
-                                          ],
-                                        ),
-                                      ) ??
-                                      false;
-                                },
-                                onDismissed: (_) {
-                                  // Delete chat logic here
-                                },
-                                child: GestureDetector(
-                                  onTap: () => _openChat(
-                                      userEmail: userData['email'],
-                                      username: userData['username']),
-                                  child: FutureBuilder<Map<String, dynamic>?>(
-                                    future: getLastMessage(
-                                        _currentUser.email!, userData['email']),
-                                    builder: (context, snapshot) {
-                                      String messageText = "No messages yet";
-                                      String timeText = "Just now";
+                              // return Dismissible(
+                              //   key: Key(userData['email']),
+                              //   direction: DismissDirection.endToStart,
+                              //   background: Container(
+                              //     padding: const EdgeInsets.symmetric(
+                              //         horizontal: 20),
+                              //     alignment: Alignment.centerRight,
+                              //     color: Colors.red,
+                              //     child: Row(
+                              //       mainAxisAlignment: MainAxisAlignment.end,
+                              //       children: const [
+                              //         Icon(Icons.delete, color: Colors.white),
+                              //         SizedBox(width: 8),
+                              //         Text(
+                              //           "Delete",
+                              //           style: TextStyle(
+                              //             color: Colors.white,
+                              //             fontWeight: FontWeight.bold,
+                              //           ),
+                              //         ),
+                              //       ],
+                              //     ),
+                              //   ),
+                              //   confirmDismiss: (direction) async {
+                              //     return await showDialog<bool>(
+                              //           context: context,
+                              //           builder: (context) => AlertDialog(
+                              //             title: const Text("Confirm Deletion"),
+                              //             content: Text(
+                              //                 "Delete chat with ${userData['username']}?"),
+                              //             actions: [
+                              //               TextButton(
+                              //                 child: const Text("Cancel"),
+                              //                 onPressed: () =>
+                              //                     Navigator.pop(context, false),
+                              //               ),
+                              //               TextButton(
+                              //                 child: const Text("Delete",
+                              //                     style: TextStyle(
+                              //                         color: Colors.red)),
+                              //                 onPressed: () =>
+                              //                     Navigator.pop(context, true),
+                              //               ),
+                              //             ],
+                              //           ),
+                              //         ) ??
+                              //         false;
+                              //   },
+                              //   onDismissed: (_) {
+                              //     // Delete chat logic here
+                              //   },
+                              //   child: GestureDetector(
+                              //     onTap: () => _openChat(
+                              //         userEmail: userData['email'],
+                              //         username: userData['username']),
+                              //     child: FutureBuilder<Map<String, dynamic>?>(
+                              //       future: getLastMessage(
+                              //           _currentUser.email!, userData['email']),
+                              //       builder: (context, snapshot) {
+                              //         String messageText = "No messages yet";
+                              //         String timeText = "Just now";
 
-                                      if (snapshot.hasData &&
-                                          snapshot.data != null) {
-                                        final message = snapshot.data!;
-                                        messageText =
-                                            message['text'] ?? "Attachment";
-                                        timeText = _formatMessageTime(
-                                            message['timestamp']);
-                                      }
+                              //         if (snapshot.hasData &&
+                              //             snapshot.data != null) {
+                              //           final message = snapshot.data!;
+                              //           messageText =
+                              //               message['text'] ?? "Attachment";
+                              //           timeText = _formatMessageTime(
+                              //               message['timestamp']);
+                              //         }
 
-                                      return _buildMessageItem(
-                                        name: userData['username'],
-                                        message: messageText,
-                                        time: timeText,
-                                        userEmail: userData['email'],
-                                        isUnread: false,
-                                        isOnline: userData['isOnline'] ?? false,
-                                        showTime: true,
-                                      );
-                                    },
-                                  ),
-                                ),
-                              );
+                              //         return _buildMessageItem(
+                              //           name: userData['username'],
+                              //           message: messageText,
+                              //           time: timeText,
+                              //           userEmail: userData['email'],
+                              //           isUnread: false,
+                              //           isOnline: userData['isOnline'] ?? false,
+                              //           showTime: true,
+                              //         );
+                              //       },
+                              //     ),
+                              //   ),
+                              // );
                             },
                           );
                         },

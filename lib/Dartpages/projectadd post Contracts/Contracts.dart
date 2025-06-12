@@ -109,7 +109,7 @@ class _ContractsState extends State<Contracts> {
         padding: const EdgeInsets.all(16),
         child: SingleChildScrollView(
           child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+            crossAxisAlignment: CrossAxisAlignment.center,
             children: [
               const Text(
                 "Select a Project:",
@@ -305,6 +305,35 @@ class _ContractsState extends State<Contracts> {
                       fillColor: Colors.white,
                     ),
                   ),
+                  const SizedBox(height: 8),
+                  TextButton(
+                    onPressed: () async {
+                      await FirebaseFirestore.instance
+                          .collection('Contracts')
+                          .add({
+                        'Information about us': [widget.Information_about_us],
+                      });
+                    },
+                    style: TextButton.styleFrom(
+                      backgroundColor: Colors.green,
+                      foregroundColor: Colors.white,
+                      padding:
+                          EdgeInsets.symmetric(horizontal: 24, vertical: 14),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      elevation: 2,
+                    ),
+                    child: Text(
+                      "Submit Contract",
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        letterSpacing: 1.1,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 8),
                 ],
               ],
             ],
