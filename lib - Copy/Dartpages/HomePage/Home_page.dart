@@ -225,7 +225,7 @@ class _HomepageState extends State<Homepage> {
         body: Center(
           child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
             const CircularProgressIndicator(
-              color: Color.fromARGB(255, 16, 76, 18),
+              color: Colors.green,
             ),
             if (user == null)
               Padding(
@@ -233,7 +233,7 @@ class _HomepageState extends State<Homepage> {
                 child: Text(
                   randomMessage,
                   style: const TextStyle(
-                    color: Color.fromARGB(255, 6, 105, 16),
+                    color: Colors.blue,
                     fontWeight: FontWeight.w500,
                     fontSize: 16,
                   ),

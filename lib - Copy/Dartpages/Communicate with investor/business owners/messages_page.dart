@@ -397,9 +397,6 @@ class _MessagesPageState extends State<MessagesPage> {
               ),
               InkWell(
                 onTap: () async {
-                  if (_userData == null) {
-                    await fetchUserData();
-                  }
                   Map<String, dynamic> Information_about_us = {
                     '_currentChatId': _currentChatId,
                     '_currentOtherUserEmail': _currentOtherUserEmail,
@@ -408,8 +405,7 @@ class _MessagesPageState extends State<MessagesPage> {
                     'CurntEmail': _userData!['email'],
                     'time of Contract': Timestamp.now(),
                   };
-                  Navigator.of(context).push(MaterialPageRoute(
-                      builder: (context) => Contracts(Information_about_us)));
+                  Contracts(Information_about_us);
                 },
                 borderRadius: BorderRadius.circular(12),
                 child: Container(

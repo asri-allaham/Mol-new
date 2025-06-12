@@ -13,7 +13,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_chat_ui/flutter_chat_ui.dart';
 import 'package:provider/provider.dart';
 import 'privacy.dart';
-import 'edit_profile.dart';
+import 'edid_profile.dart';
 import '../../simple_functions/Language.dart';
 import 'Notifications.dart';
 import 'profile info display/UIDisplay.dart';

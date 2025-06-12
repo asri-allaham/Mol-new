@@ -75,7 +75,6 @@ class _FavoritesState extends State<Favorites> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('My Favorite Projects'),
-        backgroundColor: Color(0xff387752),
       ),
       body: Projects.isEmpty
           ? const Center(child: CircularProgressIndicator())
