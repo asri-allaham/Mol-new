@@ -1,3 +1,4 @@
+import 'package:Mollni/Dartpages/Communicate%20with%20investor/business%20owners/messages_page.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
@@ -135,6 +136,70 @@ class _ContractsState extends State<Contracts> {
         dateController.text = "${picked.year}-${picked.month}-${picked.day}";
       });
     }
+  }
+
+  String formatContractText(Map<String, dynamic> data) {
+    final infoAboutUs =
+        data['Information about us'] as Map<String, dynamic>? ?? {};
+    final currentName = infoAboutUs['CurntName'] ?? 'N/A';
+    final currentEmail = infoAboutUs['CurntEmail'] ?? 'N/A';
+    final currentChatId = infoAboutUs['_currentChatId'] ?? 'N/A';
+
+    final contractInfo =
+        data['Contract Information'] as Map<String, dynamic>? ?? {};
+    final amount = contractInfo['amount'] ?? 'N/A';
+    final dateSigned = contractInfo['date_signed'] ?? 'N/A';
+    final disputeResolution = contractInfo['dispute_resolution'] ?? 'N/A';
+    final investorCommitment = contractInfo['investor_commitment'] ?? 'N/A';
+    final ownerCommitment = contractInfo['owner_commitment'] ?? 'N/A';
+    final paymentMethod = contractInfo['payment_method'] ?? 'N/A';
+    final paymentPeriod = contractInfo['payment_period'] ?? 'N/A';
+    final percentage = contractInfo['percentage'] ?? 'N/A';
+
+    final projectList =
+        data['Information about Project'] as List<dynamic>? ?? [];
+
+    final projectInfo =
+        projectList.isNotEmpty ? projectList.first as Map<String, dynamic> : {};
+
+    final projectName = projectInfo['name'] ?? 'N/A';
+    final projectDescription = projectInfo['description'] ?? 'N/A';
+    final projectCategory = projectInfo['category'] ?? 'N/A';
+    final projectCreatedAt = projectInfo['created_at'] ?? 'N/A';
+    final projectUserId = projectInfo['user_id'] ?? 'N/A';
+    final warningCount = projectInfo['warningCount']?.toString() ?? 'N/A';
+
+    final contractNumber = data['docId']?.toString() ?? 'N/A';
+
+    return '''
+ Contract Number: $contractNumber
+ *Contract Agreement Summary* 
+
+ Contract Number: $contractNumber
+ Amount: $amount
+ Date Signed: $dateSigned
+ Dispute Resolution: $disputeResolution
+ Percentage: $percentage
+ Payment Method: $paymentMethod
+ Payment Period: $paymentPeriod
+
+ Commitments:
+- Investor: $investorCommitment
+- Owner: $ownerCommitment
+
+ Current User Info:
+- Name: $currentName
+- Email: $currentEmail
+- Chat ID: $currentChatId
+
+ Project Information:
+- Name: $projectName
+- Description: $projectDescription
+- Category: $projectCategory
+- Created At: $projectCreatedAt
+- Owner ID: $projectUserId
+- Warning Count: $warningCount
+''';
   }
 
   @override
@@ -354,9 +419,7 @@ class _ContractsState extends State<Contracts> {
                   const SizedBox(height: 8),
                   TextButton(
                     onPressed: () async {
-                      await FirebaseFirestore.instance
-                          .collection('Contracts')
-                          .add({
+                      final contractData = {
                         'Information about us': widget.Information_about_us,
                         'Information about Project': project,
                         'Contract Information': {
@@ -373,10 +436,44 @@ class _ContractsState extends State<Contracts> {
                         },
                         'Curnt accepted sides': {
                           '1': user!.uid,
-                          '2': 'Not yeat'
-                        }
+                          '2': 'Not yeat',
+                        },
+                      };
+
+                      final docRef = await FirebaseFirestore.instance
+                          .collection('projects')
+                          .doc(projectID)
+                          .collection('Contracts')
+                          .add(contractData);
+                      final querySnapshot = await FirebaseFirestore.instance
+                          .collection('projects')
+                          .doc(projectID)
+                          .collection('Contracts')
+                          .get();
+
+                      String docId = docRef.id;
+
+                      final fullData = {
+                        ...contractData,
+                        'docId': docId,
+                      };
+
+                      String contractText = formatContractText(fullData);
+                      int contractsCount = querySnapshot.docs.length;
+
+                      await docRef.update({
+                        'docId': docId,
+                        'formatContractText': contractText,
+                        'sended?': false,
+                        'Contract number': contractsCount
                       });
-                      Navigator.of(context).pop();
+
+                      Navigator.of(context).pushReplacement(MaterialPageRoute(
+                        builder: (context) =>
+                            MessagesPage(projectID: projectID),
+                      ));
+
+                      print(contractText);
                     },
                     style: TextButton.styleFrom(
                       backgroundColor: Colors.green,

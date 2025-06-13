@@ -1257,18 +1257,29 @@ class _PlaceholdersState extends State<Placeholders> {
     );
     if (confirmed != true) return;
     try {
-      final querySnapshot = await projectsCollection
-          .where('user_id', isEqualTo: uid)
-          .where('projectNumber', isEqualTo: projectNumber)
-          .limit(1)
-          .get();
+      late final querySnapshot;
+      if (_userData!['admin']) {
+        querySnapshot = await projectsCollection
+            .where('projectNumber', isEqualTo: projectNumber)
+            .limit(1)
+            .get();
+      } else {
+        querySnapshot = await projectsCollection
+            .where('user_id', isEqualTo: uid)
+            .where('projectNumber', isEqualTo: projectNumber)
+            .limit(1)
+            .get();
+      }
+
       if (querySnapshot.docs.isEmpty) {
         print('No project found for user $uid with number $projectNumber');
         return;
       }
       final docId = querySnapshot.docs.first.id;
-      await projectsCollection.doc(docId).delete();
-      print('Deleted project number $projectNumber for user $uid');
+      final docRef = projectsCollection.doc(docId);
+      await docRef.update({'Adminacceptance': false});
+
+      querySnapshot['Adminacceptance'] = false;
       Navigator.of(context)
           .push(MaterialPageRoute(builder: (context) => const Homepage()));
     } catch (e) {

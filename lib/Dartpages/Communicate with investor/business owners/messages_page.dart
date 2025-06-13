@@ -7,9 +7,15 @@ import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter_chat_ui/flutter_chat_ui.dart';
 
 class MessagesPage extends StatefulWidget {
-  const MessagesPage({this.userId, super.key});
+  String? projectID;
+  MessagesPage({
+    this.userId,
+    super.key,
+    this.projectID,
+  });
   final String? userId;
   @override
   State<MessagesPage> createState() => _MessagesPageState();
@@ -28,32 +34,75 @@ class _MessagesPageState extends State<MessagesPage> {
   late User _currentUser;
   final User? user = FirebaseAuth.instance.currentUser;
   Map<String, dynamic>? _userData;
-
+  bool showButtons = false;
   List<DocumentSnapshot> filteredUsers = [];
   List<DocumentSnapshot> allUsers = [];
   int _selectedIndex = 2;
 
   final TextEditingController _messageController = TextEditingController();
   final ScrollController _scrollController = ScrollController();
-
   bool _showChatPage = false;
   String _currentChatId = "";
   String _currentOtherUserEmail = "";
+  String _currentOtherUserID = "";
   String _currentOtherUserName = "";
-  bool _isLoading = true;
   DocumentSnapshot? maxContractDoc;
+  @override
+  void dispose() {
+    _messageController.dispose();
+    _scrollController.dispose();
+    super.dispose();
+  }
 
   @override
   void initState() {
     super.initState();
     _currentUser = _auth.currentUser!;
-    if (widget.userId != null) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        _autoOpenChat(widget.userId!);
-      });
-    }
     fetchUsers();
     fetchUserData();
+
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      if (widget.userId != null) {
+        await _autoOpenChat(widget.userId!);
+      }
+    });
+  }
+
+  Future<bool?> isItsSender(String formatContractText) async {
+    final contractsCollection =
+        FirebaseFirestore.instance.collection('Contracts');
+    print(formatContractText);
+    try {
+      final querySnapshot = await contractsCollection
+          .where('formatContractText', isEqualTo: formatContractText)
+          .limit(1)
+          .get();
+
+      if (querySnapshot.docs.isEmpty) {
+        print('No contract found matching the given text');
+        return null;
+      }
+
+      final docSnapshot = querySnapshot.docs.first;
+      final contractData = docSnapshot.data();
+
+      final ownerId =
+          contractData['Information about us']?['Contract owner ID'];
+
+      if (ownerId == null) {
+        print('Contract owner ID not found in the document');
+        return false;
+      }
+
+      final isOwner = ownerId == user!.uid;
+
+      print('Is owner: $isOwner');
+      return isOwner;
+    } catch (e, stackTrace) {
+      print('Error checking owner: $e');
+      print(stackTrace);
+      return null;
+    }
   }
 
   Future<void> fetchUserData() async {
@@ -150,6 +199,7 @@ class _MessagesPageState extends State<MessagesPage> {
       final userData = userDoc.data() as Map<String, dynamic>;
       final otherUserEmail = userData['email'];
       final otherUserName = userData['username'];
+      final otherUserID = userDoc.id;
 
       final chatId = _generateChatId(_currentUser.email!, otherUserEmail);
 
@@ -157,7 +207,9 @@ class _MessagesPageState extends State<MessagesPage> {
         _currentChatId = chatId;
         _currentOtherUserEmail = otherUserEmail;
         _currentOtherUserName = otherUserName;
+        _currentOtherUserID = otherUserID;
         _showChatPage = true;
+        _sendContract();
       });
     } catch (e) {
       print('[ERROR] Failed to auto-open chat: $e');
@@ -187,6 +239,24 @@ class _MessagesPageState extends State<MessagesPage> {
     });
   }
 
+  Future<String?> fetchUserID() async {
+    DocumentSnapshot? matchingUser;
+    try {
+      matchingUser = allUsers.firstWhere(
+        (doc) => doc['email'] == _currentOtherUserEmail,
+      );
+    } catch (e) {
+      matchingUser = null;
+    }
+
+    if (matchingUser != null) {
+      final userID = matchingUser.id;
+      return userID;
+    } else {
+      return null;
+    }
+  }
+
   String _generateChatId(String email1, String email2) {
     final sorted = [email1, email2]..sort();
     return '${sorted[0]}_${sorted[1]}';
@@ -207,27 +277,6 @@ class _MessagesPageState extends State<MessagesPage> {
       return DateFormat('MMM d').format(date);
     } catch (e) {
       return "Just now";
-    }
-  }
-
-  Future<String> _getOrCreateChat(String otherUserEmail) async {
-    final chatId = _generateChatId(_currentUser.email!, otherUserEmail);
-
-    try {
-      final chatSnapshot =
-          await _firestore.collection('chats').doc(chatId).get();
-
-      if (!chatSnapshot.exists) {
-        await _firestore.collection('chats').doc(chatId).set({
-          'createdAt': FieldValue.serverTimestamp(),
-          'participants': [_currentUser.uid, otherUserEmail],
-          'participantEmails': [_currentUser.email, otherUserEmail],
-        });
-      }
-      return chatId;
-    } catch (e) {
-      print('[ERROR] Error in _getOrCreateChat: $e');
-      rethrow;
     }
   }
 
@@ -263,6 +312,7 @@ class _MessagesPageState extends State<MessagesPage> {
         _currentOtherUserEmail = otherUserEmail;
         _currentOtherUserName = otherUserName;
         _showChatPage = true;
+        _sendContract();
       });
     } catch (e) {
       print('[ERROR] Failed to open chat: $e');
@@ -379,6 +429,7 @@ class _MessagesPageState extends State<MessagesPage> {
                               ? Image.network(
                                   url,
                                   fit: BoxFit.cover,
+                                  width: 40,
                                   errorBuilder: (context, error, stackTrace) {
                                     return Image.asset(
                                       "lib/img/person1.png",
@@ -409,10 +460,11 @@ class _MessagesPageState extends State<MessagesPage> {
                     'CurntName': _userData!['username'],
                     'CurntEmail': _userData!['email'],
                     'time of Contract': Timestamp.now(),
+                    'Contreact owner ID': user!.uid,
+                    'other side user': _currentOtherUserID
                   };
                   Navigator.of(context).push(MaterialPageRoute(
                       builder: (context) => Contracts(Information_about_us)));
-                  fetchLastContractTextForUser(user!.uid);
                 },
                 borderRadius: BorderRadius.circular(12),
                 child: Container(
@@ -523,6 +575,193 @@ class _MessagesPageState extends State<MessagesPage> {
                                   fontSize: 10,
                                 ),
                               ),
+                              if (msg['type'] == 'contract') ...[
+                                FutureBuilder<bool?>(
+                                  future: isItsSender(msg['text']),
+                                  builder: (context, snapshot) {
+                                    if (snapshot.connectionState ==
+                                        ConnectionState.waiting) {
+                                      return const Center(
+                                          child: CircularProgressIndicator());
+                                    }
+
+                                    final isOwner = snapshot.data ?? false;
+
+                                    if (isOwner) return Container();
+
+                                    return Row(
+                                      children: [
+                                        ElevatedButton(
+                                          style: ElevatedButton.styleFrom(
+                                            backgroundColor:
+                                                const Color.fromARGB(
+                                                    255, 47, 211, 91),
+                                            foregroundColor: Colors.white,
+                                            padding: const EdgeInsets.symmetric(
+                                                horizontal: 24, vertical: 12),
+                                            shape: RoundedRectangleBorder(
+                                              borderRadius:
+                                                  BorderRadius.circular(12),
+                                            ),
+                                            elevation: 5,
+                                            shadowColor: Colors.redAccent
+                                                .withOpacity(0.5),
+                                          ),
+                                          onPressed: () {
+                                            showDialog(
+                                              context: context,
+                                              builder: (context) => AlertDialog(
+                                                shape: RoundedRectangleBorder(
+                                                  borderRadius:
+                                                      BorderRadius.circular(20),
+                                                ),
+                                                backgroundColor: Colors.white,
+                                                title: const Text(
+                                                  'Are you sure?',
+                                                  style: TextStyle(
+                                                    fontWeight: FontWeight.bold,
+                                                    color: Colors.black87,
+                                                  ),
+                                                ),
+                                                content: Text(
+                                                  'Do you want to close this dialog?',
+                                                  style: TextStyle(
+                                                    fontSize: 16,
+                                                    color: Colors.grey[700],
+                                                  ),
+                                                ),
+                                                actions: [
+                                                  TextButton(
+                                                    style: TextButton.styleFrom(
+                                                      foregroundColor:
+                                                          Colors.grey[600],
+                                                    ),
+                                                    onPressed: () =>
+                                                        Navigator.of(context)
+                                                            .pop(),
+                                                    child: const Text('Cancel'),
+                                                  ),
+                                                  ElevatedButton(
+                                                    style: ElevatedButton
+                                                        .styleFrom(
+                                                      backgroundColor:
+                                                          Colors.blue,
+                                                      foregroundColor:
+                                                          Colors.white,
+                                                      shape:
+                                                          RoundedRectangleBorder(
+                                                        borderRadius:
+                                                            BorderRadius
+                                                                .circular(10),
+                                                      ),
+                                                    ),
+                                                    onPressed: () =>
+                                                        Navigator.of(context)
+                                                            .pop(),
+                                                    child: const Text('OK'),
+                                                  ),
+                                                ],
+                                              ),
+                                            );
+                                          },
+                                          child: const Text(
+                                            "Accapt",
+                                            style: TextStyle(
+                                              fontSize: 16,
+                                              fontWeight: FontWeight.w600,
+                                              letterSpacing: 0.5,
+                                            ),
+                                          ),
+                                        ),
+                                        SizedBox(
+                                          width: 40,
+                                        ),
+                                        ElevatedButton(
+                                          style: ElevatedButton.styleFrom(
+                                            backgroundColor: Colors.red
+                                                .shade700, // nice reject color
+                                            foregroundColor: Colors.white,
+                                            padding: const EdgeInsets.symmetric(
+                                                horizontal: 24, vertical: 12),
+                                            shape: RoundedRectangleBorder(
+                                              borderRadius:
+                                                  BorderRadius.circular(12),
+                                            ),
+                                            elevation: 5,
+                                            shadowColor: Colors.redAccent
+                                                .withOpacity(0.5),
+                                          ),
+                                          onPressed: () {
+                                            showDialog(
+                                              context: context,
+                                              builder: (context) => AlertDialog(
+                                                shape: RoundedRectangleBorder(
+                                                  borderRadius:
+                                                      BorderRadius.circular(20),
+                                                ),
+                                                backgroundColor: Colors.white,
+                                                title: const Text(
+                                                  'Are you sure?',
+                                                  style: TextStyle(
+                                                    fontWeight: FontWeight.bold,
+                                                    color: Colors.black87,
+                                                  ),
+                                                ),
+                                                content: Text(
+                                                  'Do you want to close this dialog?',
+                                                  style: TextStyle(
+                                                    fontSize: 16,
+                                                    color: Colors.grey[700],
+                                                  ),
+                                                ),
+                                                actions: [
+                                                  TextButton(
+                                                    style: TextButton.styleFrom(
+                                                      foregroundColor:
+                                                          Colors.grey[600],
+                                                    ),
+                                                    onPressed: () =>
+                                                        Navigator.of(context)
+                                                            .pop(),
+                                                    child: const Text('Cancel'),
+                                                  ),
+                                                  ElevatedButton(
+                                                    style: ElevatedButton
+                                                        .styleFrom(
+                                                      backgroundColor:
+                                                          Colors.blue,
+                                                      foregroundColor:
+                                                          Colors.white,
+                                                      shape:
+                                                          RoundedRectangleBorder(
+                                                        borderRadius:
+                                                            BorderRadius
+                                                                .circular(10),
+                                                      ),
+                                                    ),
+                                                    onPressed: () =>
+                                                        Navigator.of(context)
+                                                            .pop(),
+                                                    child: const Text('OK'),
+                                                  ),
+                                                ],
+                                              ),
+                                            );
+                                          },
+                                          child: const Text(
+                                            "Reject",
+                                            style: TextStyle(
+                                              fontSize: 16,
+                                              fontWeight: FontWeight.w600,
+                                              letterSpacing: 0.5,
+                                            ),
+                                          ),
+                                        ),
+                                      ],
+                                    );
+                                  },
+                                )
+                              ]
                             ],
                           ),
                         ),
@@ -1094,96 +1333,40 @@ class _MessagesPageState extends State<MessagesPage> {
     );
   }
 
-  String formatContractText(Map<String, dynamic> data) {
-    final amount = data['amount'] ?? 'N/A';
-    final dateSigned = data['date_signed'] ?? 'N/A';
-    final disputeResolution = data['dispute_resolution'] ?? 'N/A';
-    final investorCommitment = data['investor_commitment'] ?? 'N/A';
-    final ownerCommitment = data['owner_commitment'] ?? 'N/A';
-    final paymentMethod = data['payment_method'] ?? 'N/A';
-    final paymentPeriod = data['payment_period'] ?? 'N/A';
-    final percentage = data['percentage'] ?? 'N/A';
-    final contractsNumber = data['ContractsNumber']?.toString() ?? 'N/A';
+  void _sendContract() async {
+    if (widget.projectID != null) {
+      final querySnapshot = await FirebaseFirestore.instance
+          .collection('projects')
+          .doc(widget.projectID)
+          .collection('Contracts')
+          .get();
+      for (var doc in querySnapshot.docs) {
+        final data = doc.data();
 
-    final infoAboutUs =
-        data['Information about us'] as Map<String, dynamic>? ?? {};
-    final currentName = infoAboutUs['CurntName'] ?? 'N/A';
-    final currentEmail = infoAboutUs['CurntEmail'] ?? 'N/A';
-    final currentChatId = infoAboutUs['_currentChatId'] ?? 'N/A';
-
-    return '''
-📄 *Contract Summary* 📄
-
-Contract Number: $contractsNumber
-Amount: $amount
-Date Signed: $dateSigned
-Dispute Resolution: $disputeResolution
-Investor Commitment: $investorCommitment
-Owner Commitment: $ownerCommitment
-Payment Method: $paymentMethod
-Payment Period: $paymentPeriod
-Percentage: $percentage
-
-Current User:
-- Name: $currentName
-- Email: $currentEmail
-- Chat ID: $currentChatId
-''';
-  }
-
-  Future<void> fetchLastContractTextForUser(String userId) async {
-    final query = FirebaseFirestore.instance.collection('Contracts');
-    final snapshot = await query.get();
-
-    int maxnum = -1;
-    DocumentSnapshot? lastDoc;
-
-    for (var doc in snapshot.docs) {
-      final data = doc.data() as Map<String, dynamic>;
-      final acceptedSides =
-          data['Curnt accepted sides'] as Map<String, dynamic>?;
-
-      if (acceptedSides != null &&
-          acceptedSides['1'] == userId &&
-          data['_currentChatId'] == _currentChatId) {
-        final contractNumber = data['ContractsNumber'] ?? 0;
-
-        if (contractNumber >= maxnum) {
-          maxnum = contractNumber;
-          lastDoc = doc;
+        final bool hasBeenSent = data['sended'] ?? false;
+        final String contractText =
+            data['formatContractText'] ?? 'No contract text';
+        if (!hasBeenSent) {
+          await doc.reference.update({'sended': true});
+          try {
+            await _firestore
+                .collection('chats')
+                .doc(_currentChatId)
+                .collection('messages')
+                .add({
+              'senderId': _currentUser.uid,
+              'senderEmail': _currentUser.email,
+              'text': contractText,
+              'timestamp': FieldValue.serverTimestamp(),
+              'type': 'contract',
+            });
+            _messageController.clear();
+            _scrollToBottom();
+          } catch (e) {
+            print('[ERROR] Failed to send message: $e');
+          }
         }
       }
-    }
-
-    if (lastDoc == null) {
-      return;
-    }
-
-    final contractText =
-        formatContractText(lastDoc.data() as Map<String, dynamic>);
-
-    _sendContract(contractText);
-  }
-
-  void _sendContract(String contractText) async {
-    if (contractText.isEmpty || _currentChatId.isEmpty) return;
-
-    try {
-      await _firestore
-          .collection('chats')
-          .doc(_currentChatId)
-          .collection('messages')
-          .add({
-        'senderId': _currentUser.uid,
-        'senderEmail': _currentUser.email,
-        'text': contractText,
-        'timestamp': FieldValue.serverTimestamp(),
-        'type': 'contract',
-      });
-      _messageController.clear();
-      _scrollToBottom();
-    } catch (e) {
-      print('[ERROR] Failed to send message: $e');
     }
   }
 }

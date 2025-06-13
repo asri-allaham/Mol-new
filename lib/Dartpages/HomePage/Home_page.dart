@@ -473,7 +473,7 @@ class _HomepageState extends State<Homepage> {
                             ],
                             onItemTapped: (index) {
                               if (index == 0) {
-                                deletePost(
+                                rejectPost(
                                     context: context,
                                     postNumber: post['postNumber']);
                                 setState(() {
@@ -759,8 +759,13 @@ class _HomepageState extends State<Homepage> {
                     Icon(Icons.notifications, color: Colors.white, size: 30),
                     IconButton(
                         onPressed: () {
-                          Navigator.of(context).push(MaterialPageRoute(
-                              builder: (context) => ProfileInformation()));
+                          if (user?.uid == null) {
+                            Navigator.of(context).push(MaterialPageRoute(
+                                builder: (context) => LoginPage()));
+                          } else {
+                            Navigator.of(context).push(MaterialPageRoute(
+                                builder: (context) => ProfileInformation()));
+                          }
                         },
                         icon:
                             Icon(Icons.settings, color: Colors.white, size: 30))
@@ -849,26 +854,69 @@ class _HomepageState extends State<Homepage> {
     );
   }
 
-  Future<void> deletePost(
-      {required BuildContext context, required int postNumber}) async {
+  Future<void> rejectPost({
+    required BuildContext context,
+    required int postNumber,
+  }) async {
+    final postCollection = FirebaseFirestore.instance.collection('post');
+
+    final bool? confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Confirm Rejection'),
+        content: const Text('Are you sure you want to reject this post?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('No'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            child: const Text('Yes'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true) return;
+
     try {
-      debugPrint(
-          'Deleting post - Number: $postNumber (Type: ${postNumber.runtimeType})');
-      debugPrint('Current user UID: ${user!.uid}');
-      final querySnapshot = await FirebaseFirestore.instance
-          .collection('post')
-          .where('postNumber', isEqualTo: postNumber)
-          .where('user_id', isEqualTo: user!.uid)
-          .get();
+      late final QuerySnapshot querySnapshot;
+
+      if (_userData!['admin']) {
+        querySnapshot = await postCollection
+            .where('postNumber', isEqualTo: postNumber)
+            .limit(1)
+            .get();
+      } else {
+        querySnapshot = await postCollection
+            .where('postNumber', isEqualTo: postNumber)
+            .where('user_id', isEqualTo: user!.uid)
+            .limit(1)
+            .get();
+      }
+
+      if (querySnapshot.docs.isEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Post not found or no permission')),
+        );
+        return;
+      }
+
       final docId = querySnapshot.docs.first.id;
-      debugPrint('Deleting document ID: $docId');
-      await FirebaseFirestore.instance.collection('post').doc(docId).delete();
+      final postDoc = postCollection.doc(docId);
+
+      // Update the adminAcceptance field instead of deleting
+      await postDoc.update({'adminAcceptance': false});
+
       ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Post deleted successfully!')));
+        const SnackBar(content: Text('Post rejected successfully!')),
+      );
     } catch (e) {
-      debugPrint('Delete error: $e');
-      ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text('Error: ${e.toString()}')));
+      print('Error rejecting post: $e');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error: ${e.toString()}')),
+      );
     }
   }
 

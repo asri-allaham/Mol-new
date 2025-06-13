@@ -206,10 +206,7 @@ class _EdidProfileState extends State<EdidProfile> {
                   color: Color(0xff002114),
                   size: 40,
                 ),
-                onPressed: () {
-                  Navigator.of(context).pushReplacement(
-                      MaterialPageRoute(builder: (context) => const Profile()));
-                },
+                onPressed: () => Navigator.of(context).pop(),
               ),
             ],
           ),

@@ -488,18 +488,14 @@ class _ImageUploaderPageState extends State<ProjectAdd> {
   }
 
   Future<int> getNextProjectNumberForUser(String? userId) async {
-    final counterDoc =
-        FirebaseFirestore.instance.collection('projects').doc(userId);
+    if (userId == null) return 0;
 
-    return FirebaseFirestore.instance.runTransaction<int>((transaction) async {
-      final snapshot = await transaction.get(counterDoc);
-      int current = 0;
-      if (snapshot.exists) {
-        current = snapshot.get('projectNumber') as int;
-      }
-      final next = current + 1;
-      transaction.set(counterDoc, {'projectNumber': next});
-      return next;
-    });
+    final querySnapshot = await FirebaseFirestore.instance
+        .collection('projects')
+        .where('user_id', isEqualTo: userId)
+        .get();
+
+    int projectCount = querySnapshot.docs.length;
+    return projectCount + 1;
   }
 }

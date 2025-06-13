@@ -88,7 +88,7 @@ class _AdminacceptanceState extends State<Adminacceptance>
       final projectData = doc.data();
       final userId = projectData['user_id'];
       final adminAccepted = projectData['Adminacceptance'] ?? false;
-      if (adminAccepted) continue;
+      if (adminAccepted != true) continue;
 
       userFutures.add(
         FirebaseFirestore.instance.collection('users').doc(userId).get(),

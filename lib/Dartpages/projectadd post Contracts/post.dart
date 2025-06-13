@@ -298,7 +298,7 @@ class _ImageUploaderPageState extends State<Post> {
   }
 
   Future<void> _saveProjectDetailsToFirestore(List<String> imageUrls) async {
-    int postNumber = await getNextPostNumberForUser(user?.uid);
+    int postNumber = await getNextPostNumberForUser();
 
     await FirebaseFirestore.instance.collection('post').add({
       'Adminacceptance': false,
@@ -312,20 +312,12 @@ class _ImageUploaderPageState extends State<Post> {
     });
   }
 
-  Future<int> getNextPostNumberForUser(String? userId) async {
-    final counterDoc =
-        FirebaseFirestore.instance.collection('post').doc(userId);
+  Future<int> getNextPostNumberForUser() async {
+    final querySnapshot =
+        await FirebaseFirestore.instance.collection('post').get();
 
-    return FirebaseFirestore.instance.runTransaction<int>((transaction) async {
-      final snapshot = await transaction.get(counterDoc);
-      int current = 0;
-      if (snapshot.exists) {
-        current = snapshot.get('postNumber') as int;
-      }
-      final next = current + 1;
-      transaction.set(counterDoc, {'postNumber': next});
-      return next;
-    });
+    int postcount = querySnapshot.docs.length;
+    return postcount + 1;
   }
 
   @override

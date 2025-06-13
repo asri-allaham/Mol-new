@@ -30,15 +30,7 @@ class _NotificationsPageState extends State<Notifications> {
         backgroundColor: const Color(0xffECECEC),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back_ios_new, color: Color(0xff002114)),
-          onPressed: () {
-            Navigator.of(context).push(
-              MaterialPageRoute(
-                builder: (context) => Profile(
-                    // sound: _soundEnabled ? 'on' : 'off', not used yet
-                    ),
-              ),
-            );
-          },
+          onPressed: () => Navigator.of(context).pop(),
         ),
         iconTheme: const IconThemeData(color: Color(0xff002114)),
         title: const Text(
