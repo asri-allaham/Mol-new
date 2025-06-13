@@ -66,31 +66,35 @@ class _MessagesPageState extends State<MessagesPage> {
         await _autoOpenChat(widget.userId!);
       }
     });
+    print("Current User Email: ${_currentUser.email}");
   }
 
-  Future<bool?> isItsSender(String formatContractText) async {
-    final contractsCollection =
-        FirebaseFirestore.instance.collection('Contracts');
-    print(formatContractText);
+  Future<bool?> isItsSender(String docId) async {
     try {
-      final querySnapshot = await contractsCollection
-          .where('formatContractText', isEqualTo: formatContractText)
-          .limit(1)
-          .get();
+      final String? projectId = widget.projectID;
+      if (projectId == null) {
+        print('Project ID not available');
+        return false;
+      }
 
-      if (querySnapshot.docs.isEmpty) {
-        print('No contract found matching the given text');
+      final DocumentReference contractRef = FirebaseFirestore.instance
+          .collection('projects')
+          .doc(projectId)
+          .collection('Contracts')
+          .doc(docId);
+
+      final DocumentSnapshot contractDoc = await contractRef.get();
+
+      if (!contractDoc.exists) {
+        print('Contract document not found');
         return null;
       }
 
-      final docSnapshot = querySnapshot.docs.first;
-      final contractData = docSnapshot.data();
-
-      final ownerId =
-          contractData['Information about us']?['Contract owner ID'];
+      final data = contractDoc.data() as Map<String, dynamic>;
+      final ownerId = data['Information about us']?['Contract owner ID'];
 
       if (ownerId == null) {
-        print('Contract owner ID not found in the document');
+        print('Contract owner ID not found');
         return false;
       }
 
@@ -577,7 +581,7 @@ class _MessagesPageState extends State<MessagesPage> {
                               ),
                               if (msg['type'] == 'contract') ...[
                                 FutureBuilder<bool?>(
-                                  future: isItsSender(msg['text']),
+                                  future: isItsSender(msg['docId']),
                                   builder: (context, snapshot) {
                                     if (snapshot.connectionState ==
                                         ConnectionState.waiting) {
@@ -586,12 +590,27 @@ class _MessagesPageState extends State<MessagesPage> {
                                     }
 
                                     final isOwner = snapshot.data ?? false;
+                                    final isSender = msg['senderEmail'] ==
+                                        _currentUser.email;
+                                    print(
+                                        "isOwner:$isOwner iissender $isSender");
 
-                                    if (isOwner) return Container();
+                                    if (isOwner || isSender) {
+                                      return Container(); // Hide buttons
+                                    }
 
                                     return Row(
                                       children: [
                                         ElevatedButton(
+                                          onPressed: () =>
+                                              _showConfirmationDialog(
+                                            context: context,
+                                            title: 'Accept Contract',
+                                            content:
+                                                'Are you sure you want to accept this contract?',
+                                            onConfirm: () => _acceptContract(
+                                                context, msg['docId']),
+                                          ),
                                           style: ElevatedButton.styleFrom(
                                             backgroundColor:
                                                 const Color.fromARGB(
@@ -600,162 +619,33 @@ class _MessagesPageState extends State<MessagesPage> {
                                             padding: const EdgeInsets.symmetric(
                                                 horizontal: 24, vertical: 12),
                                             shape: RoundedRectangleBorder(
-                                              borderRadius:
-                                                  BorderRadius.circular(12),
-                                            ),
-                                            elevation: 5,
-                                            shadowColor: Colors.redAccent
-                                                .withOpacity(0.5),
+                                                borderRadius:
+                                                    BorderRadius.circular(12)),
                                           ),
-                                          onPressed: () {
-                                            showDialog(
-                                              context: context,
-                                              builder: (context) => AlertDialog(
-                                                shape: RoundedRectangleBorder(
-                                                  borderRadius:
-                                                      BorderRadius.circular(20),
-                                                ),
-                                                backgroundColor: Colors.white,
-                                                title: const Text(
-                                                  'Are you sure?',
-                                                  style: TextStyle(
-                                                    fontWeight: FontWeight.bold,
-                                                    color: Colors.black87,
-                                                  ),
-                                                ),
-                                                content: Text(
-                                                  'Do you want to close this dialog?',
-                                                  style: TextStyle(
-                                                    fontSize: 16,
-                                                    color: Colors.grey[700],
-                                                  ),
-                                                ),
-                                                actions: [
-                                                  TextButton(
-                                                    style: TextButton.styleFrom(
-                                                      foregroundColor:
-                                                          Colors.grey[600],
-                                                    ),
-                                                    onPressed: () =>
-                                                        Navigator.of(context)
-                                                            .pop(),
-                                                    child: const Text('Cancel'),
-                                                  ),
-                                                  ElevatedButton(
-                                                    style: ElevatedButton
-                                                        .styleFrom(
-                                                      backgroundColor:
-                                                          Colors.blue,
-                                                      foregroundColor:
-                                                          Colors.white,
-                                                      shape:
-                                                          RoundedRectangleBorder(
-                                                        borderRadius:
-                                                            BorderRadius
-                                                                .circular(10),
-                                                      ),
-                                                    ),
-                                                    onPressed: () =>
-                                                        Navigator.of(context)
-                                                            .pop(),
-                                                    child: const Text('OK'),
-                                                  ),
-                                                ],
-                                              ),
-                                            );
-                                          },
-                                          child: const Text(
-                                            "Accapt",
-                                            style: TextStyle(
-                                              fontSize: 16,
-                                              fontWeight: FontWeight.w600,
-                                              letterSpacing: 0.5,
-                                            ),
-                                          ),
+                                          child: const Text("Accept"),
                                         ),
-                                        SizedBox(
-                                          width: 40,
-                                        ),
+                                        const SizedBox(width: 40),
                                         ElevatedButton(
+                                          onPressed: () =>
+                                              _showConfirmationDialog(
+                                            context: context,
+                                            title: 'Reject Contract',
+                                            content:
+                                                'Are you sure you want to reject this contract?',
+                                            onConfirm: () => _rejectContract(
+                                                context, msg['docId']),
+                                          ),
                                           style: ElevatedButton.styleFrom(
-                                            backgroundColor: Colors.red
-                                                .shade700, // nice reject color
+                                            backgroundColor:
+                                                Colors.red.shade700,
                                             foregroundColor: Colors.white,
                                             padding: const EdgeInsets.symmetric(
                                                 horizontal: 24, vertical: 12),
                                             shape: RoundedRectangleBorder(
-                                              borderRadius:
-                                                  BorderRadius.circular(12),
-                                            ),
-                                            elevation: 5,
-                                            shadowColor: Colors.redAccent
-                                                .withOpacity(0.5),
+                                                borderRadius:
+                                                    BorderRadius.circular(12)),
                                           ),
-                                          onPressed: () {
-                                            showDialog(
-                                              context: context,
-                                              builder: (context) => AlertDialog(
-                                                shape: RoundedRectangleBorder(
-                                                  borderRadius:
-                                                      BorderRadius.circular(20),
-                                                ),
-                                                backgroundColor: Colors.white,
-                                                title: const Text(
-                                                  'Are you sure?',
-                                                  style: TextStyle(
-                                                    fontWeight: FontWeight.bold,
-                                                    color: Colors.black87,
-                                                  ),
-                                                ),
-                                                content: Text(
-                                                  'Do you want to close this dialog?',
-                                                  style: TextStyle(
-                                                    fontSize: 16,
-                                                    color: Colors.grey[700],
-                                                  ),
-                                                ),
-                                                actions: [
-                                                  TextButton(
-                                                    style: TextButton.styleFrom(
-                                                      foregroundColor:
-                                                          Colors.grey[600],
-                                                    ),
-                                                    onPressed: () =>
-                                                        Navigator.of(context)
-                                                            .pop(),
-                                                    child: const Text('Cancel'),
-                                                  ),
-                                                  ElevatedButton(
-                                                    style: ElevatedButton
-                                                        .styleFrom(
-                                                      backgroundColor:
-                                                          Colors.blue,
-                                                      foregroundColor:
-                                                          Colors.white,
-                                                      shape:
-                                                          RoundedRectangleBorder(
-                                                        borderRadius:
-                                                            BorderRadius
-                                                                .circular(10),
-                                                      ),
-                                                    ),
-                                                    onPressed: () =>
-                                                        Navigator.of(context)
-                                                            .pop(),
-                                                    child: const Text('OK'),
-                                                  ),
-                                                ],
-                                              ),
-                                            );
-                                          },
-                                          child: const Text(
-                                            "Reject",
-                                            style: TextStyle(
-                                              fontSize: 16,
-                                              fontWeight: FontWeight.w600,
-                                              letterSpacing: 0.5,
-                                            ),
-                                          ),
+                                          child: const Text("Reject"),
                                         ),
                                       ],
                                     );
@@ -1334,39 +1224,110 @@ class _MessagesPageState extends State<MessagesPage> {
   }
 
   void _sendContract() async {
-    if (widget.projectID != null) {
-      final querySnapshot = await FirebaseFirestore.instance
+    if (widget.projectID == null) return;
+
+    try {
+      final contractsRef = FirebaseFirestore.instance
           .collection('projects')
           .doc(widget.projectID)
-          .collection('Contracts')
-          .get();
+          .collection('Contracts');
+
+      final querySnapshot = await contractsRef.get();
+
       for (var doc in querySnapshot.docs) {
         final data = doc.data();
+        final bool hasBeenSent = data['sent'] ?? false;
+        final String contractText = data['formatContractText'] ?? 'No text';
 
-        final bool hasBeenSent = data['sended'] ?? false;
-        final String contractText =
-            data['formatContractText'] ?? 'No contract text';
         if (!hasBeenSent) {
-          await doc.reference.update({'sended': true});
-          try {
-            await _firestore
-                .collection('chats')
-                .doc(_currentChatId)
-                .collection('messages')
-                .add({
-              'senderId': _currentUser.uid,
-              'senderEmail': _currentUser.email,
-              'text': contractText,
-              'timestamp': FieldValue.serverTimestamp(),
-              'type': 'contract',
-            });
-            _messageController.clear();
-            _scrollToBottom();
-          } catch (e) {
-            print('[ERROR] Failed to send message: $e');
-          }
+          await doc.reference.update({'sent': true});
+
+          await FirebaseFirestore.instance
+              .collection('chats')
+              .doc(_currentChatId)
+              .collection('messages')
+              .add({
+            'senderId': _currentUser.uid,
+            'senderEmail': _currentUser.email,
+            'text': contractText,
+            'type': 'contract',
+            'timestamp': FieldValue.serverTimestamp(),
+            'docId': doc.id,
+          });
+
+          _messageController.clear();
+          _scrollToBottom();
         }
       }
+    } catch (e) {
+      print('[ERROR] Failed to send contract: $e');
+    }
+  }
+
+  void _showConfirmationDialog({
+    required BuildContext context,
+    required String title,
+    required String content,
+    required VoidCallback onConfirm,
+  }) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(title),
+        content: Text(content),
+        actions: [
+          TextButton(
+              onPressed: Navigator.of(context).pop,
+              child: const Text('Cancel')),
+          ElevatedButton(
+            onPressed: () {
+              Navigator.of(context).pop();
+              onConfirm();
+            },
+            child: const Text('OK'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _acceptContract(BuildContext context, String docId) async {
+    try {
+      final String? projectId = widget.projectID;
+      if (projectId == null) return;
+
+      final contractRef = FirebaseFirestore.instance
+          .collection('projects')
+          .doc(projectId)
+          .collection('Contracts')
+          .doc(docId);
+
+      await contractRef.update({'adminAcceptance': true});
+      ScaffoldMessenger.of(context)
+          .showSnackBar(const SnackBar(content: Text('Contract accepted')));
+    } catch (e) {
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text('Error: $e')));
+    }
+  }
+
+  void _rejectContract(BuildContext context, String docId) async {
+    try {
+      final String? projectId = widget.projectID;
+      if (projectId == null) return;
+
+      final contractRef = FirebaseFirestore.instance
+          .collection('projects')
+          .doc(projectId)
+          .collection('Contracts')
+          .doc(docId);
+
+      await contractRef.update({'adminAcceptance': false});
+      ScaffoldMessenger.of(context)
+          .showSnackBar(const SnackBar(content: Text('Contract rejected')));
+    } catch (e) {
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text('Error: $e')));
     }
   }
 }

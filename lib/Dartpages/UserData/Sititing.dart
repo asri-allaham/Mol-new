@@ -1,7 +1,7 @@
 import 'package:Mollni/Dartpages/Communicate%20with%20investor/business%20owners/messages_page.dart';
 import 'package:Mollni/Dartpages/HomePage/Home_page.dart';
 import 'package:Mollni/Dartpages/HomePage/favorites.dart';
-import 'package:Mollni/Dartpages/UserData/edid_profile.dart';
+import 'package:Mollni/Dartpages/UserData/edit_profile.dart';
 import 'package:Mollni/Dartpages/projectadd%20post%20Contracts/ProjectAdd.dart';
 import 'package:Mollni/Dartpages/sighUpIn/LoginPage.dart';
 import 'package:Mollni/Dartpages/sighUpIn/login_state.dart';
@@ -137,7 +137,7 @@ class _ProfileInformationState extends State<ProfileInformation> {
                     ],
                   ),
                 ),
-                const SizedBox(height: 8),
+                const SizedBox(height: 0),
                 Center(
                   child: Text(
                     _userData?['name'] ?? user?.displayName ?? 'No name',
@@ -159,7 +159,7 @@ class _ProfileInformationState extends State<ProfileInformation> {
                     ),
                   ],
                 ),
-                const SizedBox(height: 5),
+                const SizedBox(height: 0),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
@@ -172,7 +172,6 @@ class _ProfileInformationState extends State<ProfileInformation> {
                     ),
                   ],
                 ),
-                const SizedBox(height: 15),
                 _buildSettingsSection(context, appLang),
               ],
             ),
@@ -219,7 +218,6 @@ class _ProfileInformationState extends State<ProfileInformation> {
       padding: const EdgeInsets.symmetric(horizontal: 20.0),
       child: Column(
         children: [
-          const SizedBox(height: 8),
           buildSettingsGroup([
             buildRow(
               icon: Icons.newspaper_sharp,
@@ -309,7 +307,7 @@ class _ProfileInformationState extends State<ProfileInformation> {
                   Text("    Logout",
                       style: TextStyle(color: Colors.red, fontSize: 18)),
                 ],
-              ))
+              )),
         ],
       ),
     );
