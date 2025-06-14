@@ -123,7 +123,7 @@ class _AdminacceptanceState extends State<Adminacceptance>
         mainAxisSpacing: 10,
       ),
       itemBuilder: (ctx, index) {
-        final item = items[index] ?? {}; // Prevent null item
+        final item = items[index] ?? {};
         final imageUrls = item['image_urls'] as List?;
         final imageUrl = imageUrls?[0];
         final ownerImage = item['owner_image'] ?? 'lib/img/person1.png';

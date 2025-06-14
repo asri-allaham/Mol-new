@@ -14,6 +14,7 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter_chat_ui/flutter_chat_ui.dart';
+import 'package:provider/provider.dart';
 
 class MessagesPage extends StatefulWidget {
   String? projectID;
@@ -1507,35 +1508,44 @@ class _MessagesPageState extends State<MessagesPage> {
   }
 
   void _acceptContract(BuildContext context, String docId) async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('❌ You must be logged in')),
+      );
+      return;
+    }
+
+    final contractDocRef =
+        FirebaseFirestore.instance.collection('Contracts').doc(docId);
+
     try {
-      final contractDocRef =
-          FirebaseFirestore.instance.collection('Contracts').doc(docId);
+      final contractSnapshot = await contractDocRef.get();
 
-      final contractDoc = await contractDocRef.get();
-
-      if (!contractDoc.exists) {
+      if (!contractSnapshot.exists) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Contract not found')),
+          const SnackBar(content: Text('❌ Contract not found')),
         );
         return;
       }
 
-      final contractData = contractDoc.data()!;
+      final contractData = contractSnapshot.data()!;
       final effectiveProjectId = contractData['projectId'];
 
       if (effectiveProjectId == null) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Project ID not found in contract')),
+          const SnackBar(content: Text('❌ Project ID not found in contract')),
         );
         return;
       }
 
       await contractDocRef.update({
         'adminAcceptance': true,
+        'Curnt accepted sides': [user.uid, _currentOtherUserID]
       });
 
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('✅ Contract accepted')),
+        const SnackBar(content: Text('✅ Contract accepted successfully')),
       );
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -1545,24 +1555,49 @@ class _MessagesPageState extends State<MessagesPage> {
   }
 
   void _rejectContract(BuildContext context, String docId) async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('User not authenticated')),
+      );
+      return;
+    }
+
+    final contractDocRef =
+        FirebaseFirestore.instance.collection('Contracts').doc(docId);
+
     try {
-      final contractDocRef =
-          FirebaseFirestore.instance.collection('Contracts').doc(docId);
+      final contractSnapshot = await contractDocRef.get();
 
-      final contractDoc = await contractDocRef.get();
-
-      if (!contractDoc.exists) {
+      if (!contractSnapshot.exists) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Contract not found')),
+          const SnackBar(content: Text('❌ Contract not found')),
         );
         return;
       }
 
-      // Optional: Confirm with user via dialog before deleting
-      await contractDocRef.delete();
+      await contractDocRef.update({
+        'status': 'rejected',
+        'Adminacceptance': false,
+      });
+
+      final currentChatId =
+          contractSnapshot.data()?['chatId'] ?? 'defaultChatId';
+
+      await FirebaseFirestore.instance
+          .collection('chats')
+          .doc(currentChatId)
+          .collection('messages')
+          .add({
+        'senderId': user.uid,
+        'senderEmail': user.email,
+        'text': "The offer has been rejected.",
+        'timestamp': FieldValue.serverTimestamp(),
+        'type': 'system',
+      });
 
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('❌ Contract rejected and deleted')),
+        const SnackBar(content: Text('❌ Contract rejected successfully')),
       );
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
