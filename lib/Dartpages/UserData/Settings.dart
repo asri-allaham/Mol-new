@@ -15,7 +15,7 @@ import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'privacy.dart';
 import '../../simple_functions/Language.dart';
-import 'Notifications.dart';
+import 'profile info display/Notifications.dart';
 import 'profile info display/UIDisplay.dart';
 
 class ProfileInformation extends StatefulWidget {
@@ -67,8 +67,18 @@ class _ProfileInformationState extends State<ProfileInformation> {
       body: _loading
           ? const Center(child: CircularProgressIndicator())
           : ListView(
-              physics: NeverScrollableScrollPhysics(),
               children: [
+                Positioned(
+                  top: 0,
+                  left: 0,
+                  child: InkWell(
+                    onTap: () => Navigator.pop(context),
+                    child: const Icon(
+                      Icons.arrow_back_ios_new,
+                      color: Color(0xff012113),
+                    ),
+                  ),
+                ),
                 Container(height: 30, color: Color(0xffD2E4DC)),
                 Container(
                   color: const Color(0xffD2E4DC),
@@ -76,13 +86,19 @@ class _ProfileInformationState extends State<ProfileInformation> {
                     SizedBox(width: 18),
                     Spacer(),
                     SizedBox(width: 17),
-                    IconButton(
-                      onPressed: () {
-                        Navigator.of(context).push(MaterialPageRoute(
-                            builder: (context) => Favorites()));
-                      },
-                      icon: Icon(Icons.favorite,
-                          size: 35, color: Color.fromARGB(255, 182, 23, 23)),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        IconButton(
+                          onPressed: () {
+                            Navigator.of(context).push(MaterialPageRoute(
+                                builder: (context) => Favorites()));
+                          },
+                          icon: Icon(Icons.favorite,
+                              size: 35,
+                              color: Color.fromARGB(255, 182, 23, 23)),
+                        ),
+                      ],
                     ),
                   ]),
                 ),
@@ -129,7 +145,7 @@ class _ProfileInformationState extends State<ProfileInformation> {
                 const SizedBox(height: 0),
                 Center(
                   child: Text(
-                    _userData?['name'] ?? user?.displayName ?? 'No name',
+                    _userData?['username'] ?? user?.displayName ?? 'No name',
                     style: const TextStyle(
                         fontSize: 22,
                         fontWeight: FontWeight.bold,
@@ -148,17 +164,25 @@ class _ProfileInformationState extends State<ProfileInformation> {
                     ),
                   ],
                 ),
-                const SizedBox(height: 0),
+                SizedBox(
+                  height: 30,
+                ),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    const Icon(Icons.phone, size: 20, color: Color(0xff002114)),
-                    const SizedBox(width: 5),
-                    Text(
-                      _userData?['phone'] ?? 'No phone',
-                      style: const TextStyle(
-                          fontSize: 16, color: Color(0xff012113)),
-                    ),
+                    if (_userData?['phone'] != null &&
+                        _userData!['phone'].toString().trim().isNotEmpty) ...[
+                      const Icon(Icons.phone,
+                          size: 20, color: Color(0xff002114)),
+                      const SizedBox(width: 5),
+                      Text(
+                        _userData!['phone'],
+                        style: const TextStyle(
+                          fontSize: 16,
+                          color: Color(0xff012113),
+                        ),
+                      ),
+                    ],
                   ],
                 ),
                 _buildSettingsSection(context, appLang),
@@ -214,11 +238,17 @@ class _ProfileInformationState extends State<ProfileInformation> {
               onTap: () => Navigator.of(context)
                   .push(MaterialPageRoute(builder: (context) => EdidProfile())),
             ),
+            SizedBox(
+              height: 10,
+            ),
             buildRow(
               icon: Icons.notifications,
               label: "Notifications",
               onTap: () => Navigator.of(context).push(
                   MaterialPageRoute(builder: (context) => Notifications())),
+            ),
+            SizedBox(
+              height: 10,
             ),
             buildRow(
               icon: Icons.translate,
@@ -249,7 +279,6 @@ class _ProfileInformationState extends State<ProfileInformation> {
           ]),
           const SizedBox(height: 15),
           buildSettingsGroup([
-            buildRow(icon: Icons.security, label: "Security"),
             buildRow(
               icon: Icons.contact_mail,
               label: "Contact us",
@@ -263,9 +292,9 @@ class _ProfileInformationState extends State<ProfileInformation> {
                 }
               },
             ),
-          ]),
-          const SizedBox(height: 15),
-          buildSettingsGroup([
+            SizedBox(
+              height: 10,
+            ),
             buildRow(
               icon: Icons.help_outline,
               label: "Help & Support",
@@ -281,6 +310,9 @@ class _ProfileInformationState extends State<ProfileInformation> {
                   throw 'Could not launch $emailLaunchUri';
                 }
               },
+            ),
+            SizedBox(
+              height: 10,
             ),
             buildRow(
               icon: Icons.lock_outline,

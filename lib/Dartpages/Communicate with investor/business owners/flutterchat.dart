@@ -61,6 +61,7 @@ class _ChatPageState extends State<ChatPage> {
           'uid': user.uid,
           'text': message.text,
           'createdAt': Timestamp.fromDate(DateTime.now()),
+          'type': "Message"
         });
       } else {
         print('Error: Invalid message data');

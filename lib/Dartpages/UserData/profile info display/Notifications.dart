@@ -1,6 +1,8 @@
+import 'package:Mollni/Dartpages/UserData/profile%20info%20display/NotificationService.dart';
 import 'package:flutter/material.dart';
-import 'switch.dart';
-import 'profile_information.dart';
+import '../switch.dart';
+import '../profile_information.dart';
+import 'NotificationsSiting.dart';
 
 class Notifications extends StatefulWidget {
   const Notifications({super.key});
@@ -10,18 +12,6 @@ class Notifications extends StatefulWidget {
 }
 
 class _NotificationsPageState extends State<Notifications> {
-  // حالات جميع أزرار التبديل
-  bool _generalNotification = true;
-  bool _soundEnabled = true;
-  bool _vibrateEnabled = true;
-  bool _appUpdates = true;
-  bool _billReminder = true;
-  bool _promotion = true;
-  bool _discountAvailable = true;
-  bool _paymentRequest = true;
-  bool _newServiceAvailable = true;
-  bool _newTipsAvailable = true;
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -59,26 +49,24 @@ class _NotificationsPageState extends State<Notifications> {
           const SizedBox(height: 10),
           PrivacySection(
             title: "General Notification",
-            value: _generalNotification,
-            onChanged: (value) => setState(() => _generalNotification = value),
+            value: generalNotification,
+            onChanged: (value) => setState(() => generalNotification = value),
           ),
           PrivacySection(
             title: "Sound",
-            value: _soundEnabled,
-            onChanged: (value) => setState(() => _soundEnabled = value),
+            value: soundEnabled,
+            onChanged: (value) => setState(() => soundEnabled = value),
           ),
           PrivacySection(
             title: "Vibrate",
-            value: _vibrateEnabled,
-            onChanged: (value) => setState(() => _vibrateEnabled = value),
+            value: vibrateEnabled,
+            onChanged: (value) => setState(() => vibrateEnabled = value),
           ),
 
-          // خط فاصل بين القوائم الرئيسية
           const SizedBox(height: 12),
           Container(color: const Color(0xffBDBDBD), height: 1),
           const SizedBox(height: 12),
 
-          // قسم System & services update
           const Text(
             "System & services update",
             style: TextStyle(
@@ -90,36 +78,38 @@ class _NotificationsPageState extends State<Notifications> {
           const SizedBox(height: 10),
           PrivacySection(
             title: "App updates",
-            value: _appUpdates,
-            onChanged: (value) => setState(() => _appUpdates = value),
+            value: appUpdates,
+            onChanged: (value) async {
+              setState(() => appUpdates = value);
+              if (value) {
+                await NotificationService.showNotification(
+                  id: 2,
+                  title: 'appUpdates Reminder Enabled',
+                  body:
+                      'You will now receive reminders about your app Updates.',
+                );
+              }
+            },
           ),
           PrivacySection(
-            title: "Bill Reminder",
-            value: _billReminder,
-            onChanged: (value) => setState(() => _billReminder = value),
-          ),
-          PrivacySection(
-            title: "Promotion",
-            value: _promotion,
-            onChanged: (value) => setState(() => _promotion = value),
-          ),
-          PrivacySection(
-            title: "Discount Available",
-            value: _discountAvailable,
-            onChanged: (value) => setState(() => _discountAvailable = value),
-          ),
-          PrivacySection(
-            title: "Payment Request",
-            value: _paymentRequest,
-            onChanged: (value) => setState(() => _paymentRequest = value),
+            title: "mesages",
+            value: billReminder,
+            onChanged: (value) async {
+              setState(() => billReminder = value);
+              if (value) {
+                await NotificationService.showNotification(
+                  id: 1,
+                  title: 'mesages Reminder Enabled',
+                  body: 'You will now receive reminders about your mesages.',
+                );
+              }
+            },
           ),
 
-          // خط فاصل بين القوائم الرئيسية
           const SizedBox(height: 12),
           Container(color: const Color(0xffBDBDBD), height: 1),
           const SizedBox(height: 12),
 
-          // قسم Others
           const Text(
             "Others",
             style: TextStyle(
@@ -131,13 +121,13 @@ class _NotificationsPageState extends State<Notifications> {
           const SizedBox(height: 10),
           PrivacySection(
             title: "New Service Available",
-            value: _newServiceAvailable,
-            onChanged: (value) => setState(() => _newServiceAvailable = value),
+            value: newServiceAvailable,
+            onChanged: (value) => setState(() => newServiceAvailable = value),
           ),
           PrivacySection(
             title: "New Tips Available",
-            value: _newTipsAvailable,
-            onChanged: (value) => setState(() => _newTipsAvailable = value),
+            value: newTipsAvailable,
+            onChanged: (value) => setState(() => newTipsAvailable = value),
           ),
         ],
       ),

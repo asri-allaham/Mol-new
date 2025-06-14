@@ -71,7 +71,7 @@ class _StartThreePagesState extends State<StartThreePages> {
               physics: NeverScrollableScrollPhysics(),
               children: [
                 SizedBox(
-                  height: 300,
+                  height: MediaQuery.of(context).size.height * 0.35,
                   child: Image.asset(
                     items[widget.Number_page]['image']!,
                     fit: BoxFit.cover,

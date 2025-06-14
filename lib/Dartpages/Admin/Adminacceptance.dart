@@ -88,7 +88,7 @@ class _AdminacceptanceState extends State<Adminacceptance>
       final projectData = doc.data();
       final userId = projectData['user_id'];
       final adminAccepted = projectData['Adminacceptance'] ?? false;
-      if (adminAccepted != true) continue;
+      if (adminAccepted == true) continue;
 
       userFutures.add(
         FirebaseFirestore.instance.collection('users').doc(userId).get(),
@@ -212,6 +212,20 @@ class _AdminacceptanceState extends State<Adminacceptance>
                           final docRef = querySnapshot.docs.first.reference;
                           await docRef.update({'Adminacceptance': true});
                           fetchAllData();
+                        } else {
+                          final collection =
+                              FirebaseFirestore.instance.collection(type);
+                          final querySnapshot = await collection
+                              .where('user_id', isEqualTo: item['user_id'])
+                              .where('projectNumber',
+                                  isEqualTo: item['projectNumber'])
+                              .limit(1)
+                              .get();
+                          if (querySnapshot.docs.isNotEmpty) {
+                            final docRef = querySnapshot.docs.first.reference;
+                            await docRef.update({'Adminacceptance': true});
+                            fetchAllData();
+                          }
                         }
                       },
                       child: Container(

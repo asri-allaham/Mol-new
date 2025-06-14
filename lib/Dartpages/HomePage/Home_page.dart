@@ -11,6 +11,7 @@ import 'package:Mollni/Dartpages/sighUpIn/LoginPage.dart';
 import 'package:Mollni/simple_functions/star_menu_button.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:easy_localization/easy_localization.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:Mollni/Dartpages/Admin/AdminTapsSystem.dart';
@@ -48,6 +49,7 @@ class _HomepageState extends State<Homepage> {
   int _currentPopularImageIndex = 0;
   int _currentInvestmentImageIndex = 0;
   int _selectedIndex = 0;
+  String? fcmToken;
 
   TextEditingController _searchController = TextEditingController();
 
@@ -63,20 +65,31 @@ class _HomepageState extends State<Homepage> {
     fetchUserData();
     fetchProjectsAndOwners();
     fetchPostsAndOwners();
+    _saveFcmToken();
+    FirebaseMessaging.instance.onTokenRefresh.listen((newToken) {
+      FirebaseFirestore.instance
+          .collection('users')
+          .doc(user!.uid)
+          .update({'fcmToken': newToken});
+    });
   }
 
   Future<void> fetchUserData() async {
-    await FirebaseAuth.instance.currentUser?.reload();
-    user = FirebaseAuth.instance.currentUser;
-    final uid = FirebaseAuth.instance.currentUser?.uid;
-    if (uid != null) {
-      final doc =
-          await FirebaseFirestore.instance.collection('users').doc(uid).get();
-      if (doc.exists) {
-        setState(() {
-          _userData = doc.data();
-        });
+    try {
+      await FirebaseAuth.instance.currentUser?.reload();
+      user = FirebaseAuth.instance.currentUser;
+      final uid = FirebaseAuth.instance.currentUser?.uid;
+      if (uid != null) {
+        final doc =
+            await FirebaseFirestore.instance.collection('users').doc(uid).get();
+        if (doc.exists) {
+          setState(() {
+            _userData = doc.data();
+          });
+        }
       }
+    } catch (e) {
+      print(e);
     }
   }
 
@@ -164,7 +177,6 @@ class _HomepageState extends State<Homepage> {
     try {
       final query = FirebaseFirestore.instance.collection('post');
       final snapshot = await query.get();
-
       List<Map<String, dynamic>> loadedPosts = [];
       List<Future<DocumentSnapshot>> userFutures = [];
 
@@ -248,31 +260,70 @@ class _HomepageState extends State<Homepage> {
             child: ListView(
               children: [
                 const SizedBox(height: 20),
-                if (projects.isNotEmpty)
-                  _buildSectionTitle("the_most_popular".tr()),
-                const SizedBox(height: 12),
-                _buildImageSlider(
-                    projects.take(5).toList(), _currentPopularImageIndex,
-                    (index) {
-                  setState(() {
-                    _currentPopularImageIndex = index;
-                  });
-                }, 5),
-                _buildInfoRow(_currentPopularImageIndex, 5),
-                const SizedBox(height: 30),
-                if (projects.isNotEmpty)
-                  _buildSectionTitle("highest_investment".tr()),
-                const SizedBox(height: 12),
-                _buildImageSlider(
-                    projects.take(5).toList(), _currentInvestmentImageIndex,
-                    (index) {
-                  setState(() {
-                    _currentInvestmentImageIndex = index;
-                  });
-                }, 5),
-                _buildInfoRow(_currentInvestmentImageIndex, 5),
-                const SizedBox(height: 30),
-                _DisplayItem(),
+                if (projects.isNotEmpty) ...[
+                  if (projects.length > 5) ...[
+                    _buildSectionTitle("the_most_popular".tr()),
+                    const SizedBox(height: 12),
+                    _buildImageSlider(
+                      projects.take(5).toList(),
+                      _currentPopularImageIndex,
+                      (index) {
+                        setState(() {
+                          _currentPopularImageIndex = index;
+                        });
+                      },
+                      5,
+                    ),
+                    _buildInfoRow(_currentPopularImageIndex, 5),
+                    const SizedBox(height: 30),
+                    _buildSectionTitle("highest_investment".tr()),
+                    const SizedBox(height: 12),
+                    _buildImageSlider(
+                      projects.take(5).toList(),
+                      _currentInvestmentImageIndex,
+                      (index) {
+                        setState(() {
+                          _currentInvestmentImageIndex = index;
+                        });
+                      },
+                      5,
+                    ),
+                    _buildInfoRow(_currentInvestmentImageIndex, 5),
+                    const SizedBox(height: 30),
+                    _DisplayItem(),
+                  ] else ...[
+                    _buildSectionTitle("the_most_popular".tr()),
+                    const SizedBox(height: 12),
+                    _buildImageSlider(
+                      projects,
+                      _currentPopularImageIndex,
+                      (index) {
+                        setState(() {
+                          _currentPopularImageIndex = index;
+                        });
+                      },
+                      projects.length,
+                    ),
+                    _buildInfoRow(_currentPopularImageIndex, projects.length),
+                    const SizedBox(height: 30),
+                    _buildSectionTitle("highest_investment".tr()),
+                    const SizedBox(height: 12),
+                    _buildImageSlider(
+                      projects,
+                      _currentInvestmentImageIndex,
+                      (index) {
+                        setState(() {
+                          _currentInvestmentImageIndex = index;
+                        });
+                      },
+                      projects.length,
+                    ),
+                    _buildInfoRow(
+                        _currentInvestmentImageIndex, projects.length),
+                    const SizedBox(height: 30),
+                    _DisplayItem(),
+                  ]
+                ],
               ],
             ),
           ),
@@ -1006,6 +1057,22 @@ class _HomepageState extends State<Homepage> {
           context, numberProject, userIdOwner, reporttype);
     } catch (e) {
       print(e);
+    }
+  }
+
+  Future<void> _saveFcmToken() async {
+    if (user == null) return;
+
+    fcmToken = await FirebaseMessaging.instance.getToken();
+
+    if (fcmToken != null) {
+      await FirebaseFirestore.instance
+          .collection('users')
+          .doc(user!.uid)
+          .update({
+        'fcmToken': fcmToken,
+      });
+      print("FCM Token updated in Firestore");
     }
   }
 }

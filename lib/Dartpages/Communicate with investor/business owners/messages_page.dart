@@ -1,8 +1,14 @@
+import 'package:Mollni/Dartpages/Admin/AdminTapsSystem.dart';
+import 'package:Mollni/Dartpages/projectadd%20post%20Contracts/TapsSystem.dart';
+import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+import 'dart:async';
 import 'package:Mollni/Dartpages/HomePage/Home_page.dart';
+import 'package:Mollni/Dartpages/UserData/profile%20info%20display/NotificationService.dart';
 import 'package:Mollni/Dartpages/UserData/profile_information.dart';
 import 'package:Mollni/Dartpages/projectadd%20post%20Contracts/Contracts.dart';
 import 'package:Mollni/Dartpages/projectadd%20post%20Contracts/ProjectAdd.dart';
 import 'package:Mollni/Dartpages/sighUpIn/LoginPage.dart';
+import 'package:Mollni/main.dart';
 import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -38,6 +44,9 @@ class _MessagesPageState extends State<MessagesPage> {
   List<DocumentSnapshot> filteredUsers = [];
   List<DocumentSnapshot> allUsers = [];
   int _selectedIndex = 2;
+  Timer? _chatPollingTimer;
+  Map<String, String> _lastSeenMessages = {};
+  List<Map<String, dynamic>> projects = [], posts = [];
 
   final TextEditingController _messageController = TextEditingController();
   final ScrollController _scrollController = ScrollController();
@@ -47,10 +56,30 @@ class _MessagesPageState extends State<MessagesPage> {
   String _currentOtherUserID = "";
   String _currentOtherUserName = "";
   DocumentSnapshot? maxContractDoc;
+  final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin =
+      FlutterLocalNotificationsPlugin();
+  void initializeNotifications() async {
+    const AndroidInitializationSettings initializationSettingsAndroid =
+        AndroidInitializationSettings('@mipmap/ic_launcher');
+
+    final InitializationSettings initializationSettings =
+        InitializationSettings(
+      android: initializationSettingsAndroid,
+    );
+
+    await flutterLocalNotificationsPlugin.initialize(
+      initializationSettings,
+    );
+  }
+
+  bool _isLoading = true;
+
   @override
   void dispose() {
     _messageController.dispose();
     _scrollController.dispose();
+    _chatPollingTimer?.cancel();
+
     super.dispose();
   }
 
@@ -67,6 +96,162 @@ class _MessagesPageState extends State<MessagesPage> {
       }
     });
     print("Current User Email: ${_currentUser.email}");
+    print("_currentChatId:$_currentChatId ");
+    _listenToAllChatsRealTime();
+  }
+
+  Future<void> fetchProjectsAndOwners([String? category, String? name]) async {
+    try {
+      final query = FirebaseFirestore.instance.collection('projects');
+      final snapshot = category == null
+          ? await query.get()
+          : await query.where('category', isEqualTo: category).get();
+
+      List<Map<String, dynamic>> loadedProjects = [];
+      List<Future<DocumentSnapshot>> userFutures = [];
+
+      for (var doc in snapshot.docs) {
+        final projectData = doc.data();
+
+        final adminAccepted = projectData['Adminacceptance'] ?? false;
+        if (adminAccepted != true) {
+          continue;
+        }
+
+        if (name != null &&
+            !projectData['name']
+                .toString()
+                .toLowerCase()
+                .contains(name.toLowerCase())) {
+          continue;
+        }
+
+        final userId = projectData['user_id'];
+        userFutures.add(
+            FirebaseFirestore.instance.collection('users').doc(userId).get());
+
+        loadedProjects.add(projectData);
+      }
+
+      final userSnapshots = await Future.wait(userFutures);
+
+      for (int i = 0; i < loadedProjects.length; i++) {
+        final userSnapshot = userSnapshots[i];
+        final ownerImage = userSnapshot.exists
+            ? (userSnapshot.data() as Map<String, dynamic>)['urlImage'] ?? ''
+            : '';
+
+        loadedProjects[i]['owner_image'] = ownerImage;
+      }
+
+      loadedProjects.sort((a, b) {
+        int nameCmp = a['name'].compareTo(b['name']);
+        if (nameCmp != 0) return nameCmp;
+        int descCmp = a['description'].compareTo(b['description']);
+        if (descCmp != 0) return descCmp;
+        return a['investment_amount'].compareTo(b['investment_amount']);
+      });
+
+      setState(() {
+        projects = loadedProjects;
+        _isLoading = false;
+      });
+
+      print("✅ Projects filtered by name '${name ?? "All"}' loaded!");
+    } catch (e) {
+      setState(() {
+        _isLoading = false;
+      });
+      print("❌ Error fetching projects: $e");
+    }
+  }
+
+  Future<void> fetchPostsAndOwners([String? category, String? name]) async {
+    try {
+      final query = FirebaseFirestore.instance.collection('post');
+      final snapshot = await query.get();
+      List<Map<String, dynamic>> loadedPosts = [];
+      List<Future<DocumentSnapshot>> userFutures = [];
+
+      for (var doc in snapshot.docs) {
+        final postsData = doc.data();
+        final userId = postsData['user_id'];
+        final adminAccepted = postsData['Adminacceptance'] ?? false;
+        if (adminAccepted != true) {
+          continue;
+        }
+        userFutures.add(
+            FirebaseFirestore.instance.collection('users').doc(userId).get());
+
+        loadedPosts.add(postsData);
+      }
+
+      final userSnapshots = await Future.wait(userFutures);
+
+      for (int i = 0; i < loadedPosts.length; i++) {
+        final userSnapshot = userSnapshots[i];
+        final ownerImage = userSnapshot.exists
+            ? (userSnapshot.data() as Map<String, dynamic>)['urlImage'] ?? ''
+            : '';
+
+        loadedPosts[i]['owner_image'] = ownerImage;
+      }
+
+      loadedPosts.sort((a, b) {
+        int nameCmp = a['name'].compareTo(b['name']);
+        if (nameCmp != 0) return nameCmp;
+        int descCmp = a['description'].compareTo(b['description']);
+        if (descCmp != 0) return descCmp;
+        return a['investment_amount'].compareTo(b['investment_amount']);
+      });
+
+      setState(() {
+        posts = loadedPosts;
+        _isLoading = false;
+      });
+
+      print("✅ Projects filtered by name '${name ?? "All"}' loaded!");
+    } catch (e) {
+      setState(() {
+        _isLoading = false;
+      });
+      print("❌ Error fetching projects: $e");
+    }
+  }
+
+  void _listenToAllChatsRealTime() {
+    FirebaseFirestore.instance
+        .collection('chats')
+        .snapshots()
+        .forEach((chatSnapshot) {
+      for (var chatDoc in chatSnapshot.docs) {
+        final chatId = chatDoc.id;
+        print("object" * 10);
+        FirebaseFirestore.instance
+            .collection('chats/$chatId/messages')
+            .orderBy('timestamp', descending: true)
+            .limit(1)
+            .snapshots()
+            .listen((messageSnapshot) {
+          if (messageSnapshot.docs.isEmpty) return;
+
+          final messageData =
+              messageSnapshot.docs.first.data() as Map<String, dynamic>;
+          final senderEmail = messageData['senderEmail'] ?? '';
+          final messageText = messageData['text'] ?? '';
+          print("$senderEmail senderEmail");
+          print("${_currentUser.email} _currentUser.email");
+
+          if (senderEmail != _currentUser.email &&
+              _lastSeenMessages[chatId] != messageText) {
+            _lastSeenMessages[chatId] = messageText;
+            print("Showing notification: $senderEmail - $messageText");
+
+            showLocalNotification(title: senderEmail, body: messageText);
+          }
+        });
+      }
+    });
   }
 
   Future<bool?> isItsSender(String docId) async {
@@ -346,6 +531,7 @@ class _MessagesPageState extends State<MessagesPage> {
         'senderEmail': _currentUser.email,
         'text': text,
         'timestamp': FieldValue.serverTimestamp(),
+        'type': 'Message'
       });
       _messageController.clear();
       _scrollToBottom();
@@ -418,8 +604,8 @@ class _MessagesPageState extends State<MessagesPage> {
                 children: [
                   IconButton(
                     onPressed: _closeChat,
-                    icon: const Icon(Icons.arrow_back_outlined,
-                        size: 20, color: Color.fromARGB(255, 7, 162, 100)),
+                    icon: Icon(Icons.arrow_back_outlined,
+                        color: Color.fromARGB(255, 7, 162, 100)),
                   ),
                   FutureBuilder<String?>(
                     future: imageUrl,
@@ -525,6 +711,7 @@ class _MessagesPageState extends State<MessagesPage> {
                       final msg = messages[index];
                       final isMe = msg['senderEmail'] == _currentUser.email;
 
+                      final msgData = msg.data() as Map<String, dynamic>;
                       return Align(
                         alignment:
                             isMe ? Alignment.centerRight : Alignment.centerLeft,
@@ -579,79 +766,86 @@ class _MessagesPageState extends State<MessagesPage> {
                                   fontSize: 10,
                                 ),
                               ),
-                              if (msg['type'] == 'contract') ...[
-                                FutureBuilder<bool?>(
-                                  future: isItsSender(msg['docId']),
-                                  builder: (context, snapshot) {
-                                    if (snapshot.connectionState ==
-                                        ConnectionState.waiting) {
-                                      return const Center(
-                                          child: CircularProgressIndicator());
-                                    }
+                              if (msgData.containsKey('type'))
+                                if (msg['type'] == 'contract') ...[
+                                  FutureBuilder<bool?>(
+                                    future: isItsSender(msg['docId']),
+                                    builder: (context, snapshot) {
+                                      if (snapshot.connectionState ==
+                                          ConnectionState.waiting) {
+                                        return const Center(
+                                            child: CircularProgressIndicator());
+                                      }
 
-                                    final isOwner = snapshot.data ?? false;
-                                    final isSender = msg['senderEmail'] ==
-                                        _currentUser.email;
-                                    print(
-                                        "isOwner:$isOwner iissender $isSender");
+                                      final isOwner = snapshot.data ?? false;
+                                      final isSender = msg['senderEmail'] ==
+                                          _currentUser.email;
+                                      print(
+                                          "isOwner:$isOwner iissender $isSender");
 
-                                    if (isOwner || isSender) {
-                                      return Container();
-                                    }
+                                      if (isOwner || isSender) {
+                                        return Container();
+                                      }
 
-                                    return Row(
-                                      children: [
-                                        ElevatedButton(
-                                          onPressed: () =>
-                                              _showConfirmationDialog(
-                                            context: context,
-                                            title: 'Accept Contract',
-                                            content:
-                                                'Are you sure you want to accept this contract?',
-                                            onConfirm: () => _acceptContract(
-                                                context, msg['docId']),
+                                      return Row(
+                                        children: [
+                                          ElevatedButton(
+                                            onPressed: () =>
+                                                _showConfirmationDialog(
+                                              context: context,
+                                              title: 'Accept Contract',
+                                              content:
+                                                  'Are you sure you want to accept this contract?',
+                                              onConfirm: () => _acceptContract(
+                                                  context, msg['docId']),
+                                            ),
+                                            style: ElevatedButton.styleFrom(
+                                              backgroundColor:
+                                                  const Color.fromARGB(
+                                                      255, 47, 211, 91),
+                                              foregroundColor: Colors.white,
+                                              padding:
+                                                  const EdgeInsets.symmetric(
+                                                      horizontal: 24,
+                                                      vertical: 12),
+                                              shape: RoundedRectangleBorder(
+                                                  borderRadius:
+                                                      BorderRadius.circular(
+                                                          12)),
+                                            ),
+                                            child: const Text("Accept"),
                                           ),
-                                          style: ElevatedButton.styleFrom(
-                                            backgroundColor:
-                                                const Color.fromARGB(
-                                                    255, 47, 211, 91),
-                                            foregroundColor: Colors.white,
-                                            padding: const EdgeInsets.symmetric(
-                                                horizontal: 24, vertical: 12),
-                                            shape: RoundedRectangleBorder(
-                                                borderRadius:
-                                                    BorderRadius.circular(12)),
+                                          const SizedBox(width: 40),
+                                          ElevatedButton(
+                                            onPressed: () =>
+                                                _showConfirmationDialog(
+                                              context: context,
+                                              title: 'Reject Contract',
+                                              content:
+                                                  'Are you sure you want to reject this contract?',
+                                              onConfirm: () => _rejectContract(
+                                                  context, msg['docId']),
+                                            ),
+                                            style: ElevatedButton.styleFrom(
+                                              backgroundColor:
+                                                  Colors.red.shade700,
+                                              foregroundColor: Colors.white,
+                                              padding:
+                                                  const EdgeInsets.symmetric(
+                                                      horizontal: 24,
+                                                      vertical: 12),
+                                              shape: RoundedRectangleBorder(
+                                                  borderRadius:
+                                                      BorderRadius.circular(
+                                                          12)),
+                                            ),
+                                            child: const Text("Reject"),
                                           ),
-                                          child: const Text("Accept"),
-                                        ),
-                                        const SizedBox(width: 40),
-                                        ElevatedButton(
-                                          onPressed: () =>
-                                              _showConfirmationDialog(
-                                            context: context,
-                                            title: 'Reject Contract',
-                                            content:
-                                                'Are you sure you want to reject this contract?',
-                                            onConfirm: () => _rejectContract(
-                                                context, msg['docId']),
-                                          ),
-                                          style: ElevatedButton.styleFrom(
-                                            backgroundColor:
-                                                Colors.red.shade700,
-                                            foregroundColor: Colors.white,
-                                            padding: const EdgeInsets.symmetric(
-                                                horizontal: 24, vertical: 12),
-                                            shape: RoundedRectangleBorder(
-                                                borderRadius:
-                                                    BorderRadius.circular(12)),
-                                          ),
-                                          child: const Text("Reject"),
-                                        ),
-                                      ],
-                                    );
-                                  },
-                                )
-                              ]
+                                        ],
+                                      );
+                                    },
+                                  )
+                                ]
                             ],
                           ),
                         ),
@@ -666,6 +860,8 @@ class _MessagesPageState extends State<MessagesPage> {
         ),
       );
     }
+    bool isadmin = false;
+    if (_userData?['admin'] == true) isadmin = true;
     return Scaffold(
       backgroundColor: const Color(0xFFEBF5F0),
       body: Stack(
@@ -683,8 +879,7 @@ class _MessagesPageState extends State<MessagesPage> {
                       child: Row(
                         children: [
                           IconButton(
-                            icon: const Icon(Icons.search, //get back here
-                                size: 35,
+                            icon: Icon(Icons.search, //get back here
                                 color: Color(0xff51826E)),
                             onPressed: () {},
                           ),
@@ -853,7 +1048,7 @@ class _MessagesPageState extends State<MessagesPage> {
                                   color: Colors.red,
                                   child: Row(
                                     mainAxisAlignment: MainAxisAlignment.end,
-                                    children: const [
+                                    children: [
                                       Icon(Icons.delete, color: Colors.white),
                                       SizedBox(width: 8),
                                       Text(
@@ -948,7 +1143,10 @@ class _MessagesPageState extends State<MessagesPage> {
                 mainAxisAlignment: MainAxisAlignment.spaceAround,
                 children: [
                   _buildNavItem(Icons.home, 0),
-                  _buildNavItem(Icons.add, 1),
+                  if (isadmin) ...[
+                    _buildNavItem(Icons.admin_panel_settings, 1),
+                  ] else
+                    _buildNavItem(Icons.add, 1),
                   _buildNavItem(Icons.message, 2),
                   _buildNavItem(Icons.person, 3),
                 ],
@@ -976,7 +1174,7 @@ class _MessagesPageState extends State<MessagesPage> {
           children: [
             GestureDetector(
               onTap: () => _showAttachmentOptions(context),
-              child: const Icon(Icons.attach_file, color: Colors.grey),
+              child: Icon(Icons.attach_file, color: Colors.grey),
             ),
             const SizedBox(width: 8),
             Expanded(
@@ -1005,7 +1203,10 @@ class _MessagesPageState extends State<MessagesPage> {
                   color: Color(0xff03361F),
                   shape: BoxShape.circle,
                 ),
-                child: const Icon(Icons.send, color: Colors.white, size: 20),
+                child: Icon(
+                  Icons.send,
+                  color: Colors.white,
+                ),
               ),
             ),
           ],
@@ -1059,7 +1260,7 @@ class _MessagesPageState extends State<MessagesPage> {
                       ? NetworkImage(imagePath)
                       : const AssetImage("lib/img/person1.png"),
                   child: imagePath == null
-                      ? const Icon(Icons.person, color: Colors.white)
+                      ? Icon(Icons.person, color: Colors.white)
                       : null,
                 );
               },
@@ -1091,8 +1292,7 @@ class _MessagesPageState extends State<MessagesPage> {
                 style: const TextStyle(fontWeight: FontWeight.bold),
               ),
             ),
-            if (isUnread)
-              const Icon(Icons.circle, color: Colors.green, size: 10),
+            if (isUnread) Icon(Icons.circle, color: Colors.green),
           ],
         ),
         subtitle: Text(
@@ -1155,13 +1355,16 @@ class _MessagesPageState extends State<MessagesPage> {
             Navigator.of(context).push(
                 MaterialPageRoute(builder: (context) => const LoginPage()));
           }
-        } else if (_selectedIndex == 1) {
-          if (user != null) {
-            Navigator.of(context).push(
-                MaterialPageRoute(builder: (context) => const ProjectAdd()));
+        } else if (index == 1) {
+          if (user != null && (_userData?['admin'] ?? false)) {
+            Navigator.of(context).push(MaterialPageRoute(
+                builder: (context) => Admintapssystem(projects, posts)));
           } else {
-            Navigator.of(context).push(
-                MaterialPageRoute(builder: (context) => const LoginPage()));
+            user != null
+                ? Navigator.of(context)
+                    .push(MaterialPageRoute(builder: (context) => BottomTabs()))
+                : Navigator.of(context)
+                    .push(MaterialPageRoute(builder: (context) => LoginPage()));
           }
         } else if (_selectedIndex == 3) {
           if (user != null) {
