@@ -517,14 +517,17 @@ class _PlaceholdersState extends State<Placeholders> {
                                             BorderRadius.circular(12)),
                                     elevation: 4),
                               ),
-                            if (user?.uid != null &&
-                                (user!.uid == widget.projectList['user_id'] ||
-                                    _userData!['admin'] == true))
-                              const SizedBox(width: 10),
-                            if (user?.uid != null &&
-                                (user!.uid == widget.projectList['user_id'] ||
-                                    _userData!['admin'] == true))
-                              ElevatedButton.icon(
+                            const SizedBox(width: 10),
+                          ],
+                        ),
+                        if (user?.uid != null &&
+                            (user!.uid == widget.projectList['user_id'] ||
+                                _userData!['admin'] == true))
+                          Padding(
+                            padding: const EdgeInsets.only(left: 100),
+                            child: SizedBox(
+                              width: 130,
+                              child: ElevatedButton.icon(
                                 onPressed: () {
                                   deleteProject(context, user!.uid,
                                       widget.projectList['projectNumber']);
@@ -540,9 +543,8 @@ class _PlaceholdersState extends State<Placeholders> {
                                             BorderRadius.circular(12)),
                                     elevation: 4),
                               ),
-                          ],
-                        ),
-                        const SizedBox(height: 24),
+                            ),
+                          ),
                         const Divider(color: Color(0xffE0E7F0), thickness: 1),
                         const SizedBox(height: 16),
                         if (!isUserInRatings(currentUserId!))

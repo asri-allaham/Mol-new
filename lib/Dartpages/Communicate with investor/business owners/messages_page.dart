@@ -1316,17 +1316,14 @@ class _MessagesPageState extends State<MessagesPage> {
         return;
       }
 
-      // Step 3: Reference the correct project's Contracts subcollection
       final contractRef = FirebaseFirestore.instance
           .collection('projects')
           .doc(effectiveProjectId)
           .collection('Contracts')
           .doc(docId);
 
-      // Step 4: Update adminAcceptance
       await contractRef.update({'adminAcceptance': true});
 
-      // Step 5: Notify user
       ScaffoldMessenger.of(context)
           .showSnackBar(const SnackBar(content: Text('Contract accepted')));
     } catch (e) {

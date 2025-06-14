@@ -1,4 +1,4 @@
-import 'package:Mollni/Dartpages/UserData/Sititing.dart';
+import 'package:Mollni/Dartpages/UserData/Settings.dart';
 import 'package:Mollni/Dartpages/sighUpIn/LoginPage.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';

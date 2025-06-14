@@ -52,17 +52,6 @@ class _ProfileInformationState extends State<ProfileInformation> {
     }
   }
 
-  void _launchURL(String url) async {
-    final uri = Uri.parse(url);
-    if (await canLaunchUrl(uri)) {
-      await launchUrl(uri, mode: LaunchMode.externalApplication);
-    } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Could not open the link')),
-      );
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     final user = FirebaseAuth.instance.currentUser;
@@ -264,8 +253,14 @@ class _ProfileInformationState extends State<ProfileInformation> {
             buildRow(
               icon: Icons.contact_mail,
               label: "Contact us",
-              onTap: () {
-                _launchURL("https://www.facebook.com/omar.abu.sirhan");
+              onTap: () async {
+                final Uri uri =
+                    Uri.parse("https://www.facebook.com/omar.abu.sirhan");
+
+                if (!await launchUrl(uri,
+                    mode: LaunchMode.externalApplication)) {
+                  throw 'Could not launch $uri';
+                }
               },
             ),
           ]),
@@ -274,8 +269,17 @@ class _ProfileInformationState extends State<ProfileInformation> {
             buildRow(
               icon: Icons.help_outline,
               label: "Help & Support",
-              onTap: () {
-                _launchURL("mailto:omar123abu123sirhan@gmail.com");
+              onTap: () async {
+                final Uri emailLaunchUri = Uri(
+                  scheme: 'mailto',
+                  path: 'asri.allaham@gmail.com',
+                  query: Uri.encodeFull(
+                      'subject=Help Request&body=Hello, I need assistance with...'),
+                );
+
+                if (!await launchUrl(emailLaunchUri)) {
+                  throw 'Could not launch $emailLaunchUri';
+                }
               },
             ),
             buildRow(

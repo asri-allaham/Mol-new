@@ -4,7 +4,7 @@ import 'package:Mollni/Dartpages/Communicate%20with%20investor/business%20owners
 import 'package:Mollni/Dartpages/CustomWidget/SearchBox.dart';
 import 'package:Mollni/Dartpages/HomePage/placeholders.dart';
 import 'package:Mollni/Dartpages/HomePage/viewItems.dart';
-import 'package:Mollni/Dartpages/UserData/Sititing.dart';
+import 'package:Mollni/Dartpages/UserData/Settings.dart';
 import 'package:Mollni/Dartpages/UserData/profile_information.dart';
 import 'package:Mollni/Dartpages/projectadd%20post%20Contracts/TapsSystem.dart';
 import 'package:Mollni/Dartpages/sighUpIn/LoginPage.dart';
