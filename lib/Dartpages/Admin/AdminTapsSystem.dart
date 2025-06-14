@@ -1,4 +1,4 @@
-import 'package:Mollni/Dartpages/Admin/AcceptContracts.dart';
+import 'package:Mollni/Dartpages/Admin/Contracts.dart';
 import 'package:Mollni/Dartpages/Admin/Adminacceptance.dart';
 import 'package:Mollni/Dartpages/Admin/Reports.dart';
 import 'package:flutter/material.dart';

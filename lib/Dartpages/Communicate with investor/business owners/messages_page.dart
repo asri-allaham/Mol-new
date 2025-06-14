@@ -1427,44 +1427,55 @@ class _MessagesPageState extends State<MessagesPage> {
   }
 
   void _sendContract() async {
-    if (widget.projectID == null) return;
+    if (widget.projectID == null ||
+        _currentChatId == null ||
+        _currentUser == null) return;
 
     try {
-      final contractsRef = FirebaseFirestore.instance
-          .collection('projects')
-          .doc(widget.projectID)
-          .collection('Contracts');
+      final contractsRef = FirebaseFirestore.instance.collection('Contracts');
 
-      final querySnapshot = await contractsRef.get();
+      // 🔍 Only get contracts related to this project and not yet sent
+      final querySnapshot = await contractsRef
+          .where('projectId', isEqualTo: widget.projectID)
+          .where('sended?', isEqualTo: false)
+          .get();
+
+      if (querySnapshot.docs.isEmpty) {
+        print('ℹ️ No unsent contracts for this project.');
+        return;
+      }
 
       for (var doc in querySnapshot.docs) {
         final data = doc.data();
-        final bool hasBeenSent = data['sent'] ?? false;
-        final String contractText = data['formatContractText'] ?? 'No text';
+        final String contractText =
+            data['formatContractText'] ?? 'No contract text';
 
-        if (!hasBeenSent) {
-          await doc.reference.update({'sent': true});
+        // ✅ Mark as sent
+        await doc.reference.update({'sended?': true});
 
-          await FirebaseFirestore.instance
-              .collection('chats')
-              .doc(_currentChatId)
-              .collection('messages')
-              .add({
-            'senderId': _currentUser.uid,
-            'senderEmail': _currentUser.email,
-            'text': contractText,
-            'type': 'contract',
-            'timestamp': FieldValue.serverTimestamp(),
-            'docId': doc.id,
-            'projectId': widget.projectID
-          });
-
-          _messageController.clear();
-          _scrollToBottom();
-        }
+        // ✉️ Send contract message to chat
+        await FirebaseFirestore.instance
+            .collection('chats')
+            .doc(_currentChatId)
+            .collection('messages')
+            .add({
+          'senderId': _currentUser.uid,
+          'senderEmail': _currentUser.email,
+          'text': contractText,
+          'type': 'contract',
+          'timestamp': FieldValue.serverTimestamp(),
+          'docId': doc.id,
+          'projectId': widget.projectID,
+        });
+        print("✅ Contract sent: ${doc.id}");
       }
+
+      _messageController.clear();
+      _scrollToBottom();
     } catch (e) {
-      print('[ERROR] Failed to send contract: $e');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error sending contract: ${e.toString()}')),
+      );
     }
   }
 
@@ -1497,10 +1508,10 @@ class _MessagesPageState extends State<MessagesPage> {
 
   void _acceptContract(BuildContext context, String docId) async {
     try {
-      final contractDoc = await FirebaseFirestore.instance
-          .collection('Contracts')
-          .doc(docId)
-          .get();
+      final contractDocRef =
+          FirebaseFirestore.instance.collection('Contracts').doc(docId);
+
+      final contractDoc = await contractDocRef.get();
 
       if (!contractDoc.exists) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -1519,60 +1530,44 @@ class _MessagesPageState extends State<MessagesPage> {
         return;
       }
 
-      final contractRef = FirebaseFirestore.instance
-          .collection('projects')
-          .doc(effectiveProjectId)
-          .collection('Contracts')
-          .doc(docId);
+      await contractDocRef.update({
+        'adminAcceptance': true,
+      });
 
-      await contractRef.update({'adminAcceptance': true});
-
-      ScaffoldMessenger.of(context)
-          .showSnackBar(const SnackBar(content: Text('Contract accepted')));
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('✅ Contract accepted')),
+      );
     } catch (e) {
-      ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text('Error: $e')));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('❌ Error accepting contract: $e')),
+      );
     }
   }
 
   void _rejectContract(BuildContext context, String docId) async {
     try {
-      final contractDoc = await FirebaseFirestore.instance
-          .collection('Contracts')
-          .doc(docId)
-          .get();
-      if (!contractDoc.exists) {
-        print("docId$docId");
+      final contractDocRef =
+          FirebaseFirestore.instance.collection('Contracts').doc(docId);
 
+      final contractDoc = await contractDocRef.get();
+
+      if (!contractDoc.exists) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Contract not found')),
         );
         return;
       }
 
-      final contractData = contractDoc.data()!;
-      final effectiveProjectId = contractData['projectId'];
+      // Optional: Confirm with user via dialog before deleting
+      await contractDocRef.delete();
 
-      if (effectiveProjectId == null) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Project ID not found in contract')),
-        );
-        return;
-      }
-
-      final contractRef = FirebaseFirestore.instance
-          .collection('projects')
-          .doc(effectiveProjectId)
-          .collection('Contracts')
-          .doc(docId);
-
-      await contractRef.update({'adminAcceptance': false});
-
-      ScaffoldMessenger.of(context)
-          .showSnackBar(const SnackBar(content: Text('Contract rejected')));
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('❌ Contract rejected and deleted')),
+      );
     } catch (e) {
-      ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text('Error: $e')));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('❌ Error rejecting contract: $e')),
+      );
     }
   }
 }

@@ -123,12 +123,12 @@ class _AdminacceptanceState extends State<Adminacceptance>
         mainAxisSpacing: 10,
       ),
       itemBuilder: (ctx, index) {
-        final item = items[index];
-        final imageUrl = (item['image_urls'] as List).isNotEmpty
-            ? item['image_urls'][0]
-            : null;
+        final item = items[index] ?? {}; // Prevent null item
+        final imageUrls = item['image_urls'] as List?;
+        final imageUrl = imageUrls?[0];
         final ownerImage = item['owner_image'] ?? 'lib/img/person1.png';
         final dis = item['description'] ?? '';
+        final name = item['name'] ?? 'No Name';
 
         return Card(
           shape:
@@ -182,7 +182,7 @@ class _AdminacceptanceState extends State<Adminacceptance>
                 ),
                 const SizedBox(height: 8),
                 Text(
-                  item['name'] ?? 'No Name',
+                  name,
                   style: const TextStyle(
                       fontWeight: FontWeight.bold, fontSize: 16),
                   maxLines: 2,
@@ -286,8 +286,10 @@ class _AdminacceptanceState extends State<Adminacceptance>
           : TabBarView(
               controller: _tabController,
               children: [
-                _buildGrid(posts, 'post'),
-                _buildGrid(projects, 'projects'),
+                if (posts.length != 0) _buildGrid(posts, 'post'),
+                if (projects.isNotEmpty) ...[
+                  _buildGrid(projects, 'projects'),
+                ]
               ],
             ),
     );

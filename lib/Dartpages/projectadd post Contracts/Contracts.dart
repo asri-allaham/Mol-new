@@ -33,7 +33,7 @@ class _ContractsState extends State<Contracts> {
   final TextEditingController dispute_resolutionController =
       TextEditingController();
   late String projectID;
-
+  bool _isSubmitting = false;
   @override
   void initState() {
     super.initState();
@@ -418,64 +418,93 @@ class _ContractsState extends State<Contracts> {
                   ),
                   const SizedBox(height: 8),
                   TextButton(
-                    onPressed: () async {
-                      final contractData = {
-                        'Information about us': widget.Information_about_us,
-                        'Information about Project': project,
-                        'projectId': projectID,
-                        'Contract Information': {
-                          'dispute_resolution':
-                              dispute_resolutionController.text,
-                          'payment_period': paymentPeriodController.text,
-                          'percentage': percentageController.text,
-                          'payment_method': paymentMethodController.text,
-                          'amount': amountController.text,
-                          'owner_commitment': ownerCommitmentController.text,
-                          'investor_commitment':
-                              investorCommitmentController.text,
-                          'date_signed': Date_Signed.text,
-                        },
-                        'Curnt accepted sides': {
-                          '1': user!.uid,
-                          '2': 'Not yeat',
-                        },
-                      };
+                    onPressed: _isSubmitting
+                        ? null
+                        : () async {
+                            setState(() {
+                              _isSubmitting = true;
+                            });
 
-                      final docRef = await FirebaseFirestore.instance
-                          .collection('projects')
-                          .doc(projectID)
-                          .collection('Contracts')
-                          .add(contractData);
-                      final querySnapshot = await FirebaseFirestore.instance
-                          .collection('projects')
-                          .doc(projectID)
-                          .collection('Contracts')
-                          .get();
+                            try {
+                              final user = FirebaseAuth.instance.currentUser;
+                              if (user == null)
+                                throw Exception("User not logged in");
 
-                      String docId = docRef.id;
+                              final contractData = {
+                                'Information about us':
+                                    widget.Information_about_us,
+                                'Information about Project': project,
+                                'projectId': projectID,
+                                'Contract Information': {
+                                  'dispute_resolution':
+                                      dispute_resolutionController.text,
+                                  'payment_period':
+                                      paymentPeriodController.text,
+                                  'percentage': percentageController.text,
+                                  'payment_method':
+                                      paymentMethodController.text,
+                                  'amount': amountController.text,
+                                  'owner_commitment':
+                                      ownerCommitmentController.text,
+                                  'investor_commitment':
+                                      investorCommitmentController.text,
+                                  'date_signed': Date_Signed.text,
+                                },
+                                'Curnt accepted sides': {
+                                  '1': user.uid,
+                                  '2': 'Not yet',
+                                },
+                              };
 
-                      final fullData = {
-                        ...contractData,
-                        'docId': docId,
-                      };
+                              final docRef = await FirebaseFirestore.instance
+                                  .collection('Contracts')
+                                  .add(contractData);
 
-                      String contractText = formatContractText(fullData);
-                      int contractsCount = querySnapshot.docs.length;
+                              final String docId = docRef.id;
+                              print("✅ Contract added with ID: $docId");
 
-                      await docRef.update({
-                        'docId': docId,
-                        'formatContractText': contractText,
-                        'sended?': false,
-                        'Contract number': contractsCount
-                      });
+                              final allContracts = await FirebaseFirestore
+                                  .instance
+                                  .collection('Contracts')
+                                  .get();
+                              final int contractsCount =
+                                  allContracts.docs.length;
 
-                      Navigator.of(context).pushReplacement(MaterialPageRoute(
-                        builder: (context) =>
-                            MessagesPage(projectID: projectID),
-                      ));
+                              final fullData = {
+                                ...contractData,
+                                'docId': docId,
+                              };
+                              final contractText = formatContractText(fullData);
 
-                      print(contractText);
-                    },
+                              await docRef.update({
+                                'docId': docId,
+                                'formatContractText': contractText,
+                                'sended?': false,
+                                'Contract number': contractsCount,
+                              });
+
+                              Navigator.of(context).pushReplacement(
+                                MaterialPageRoute(
+                                  builder: (context) =>
+                                      MessagesPage(projectID: projectID),
+                                ),
+                              );
+
+                              // Debug
+                              print(
+                                  "📄 Final formatted contract:\n$contractText");
+                            } catch (e) {
+                              print("❌ Error while submitting contract: $e");
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                    content: Text('Error: ${e.toString()}')),
+                              );
+                            } finally {
+                              setState(() {
+                                _isSubmitting = false;
+                              });
+                            }
+                          },
                     style: TextButton.styleFrom(
                       backgroundColor: Colors.green,
                       foregroundColor: Colors.white,
