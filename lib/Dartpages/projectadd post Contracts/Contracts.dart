@@ -422,6 +422,7 @@ class _ContractsState extends State<Contracts> {
                       final contractData = {
                         'Information about us': widget.Information_about_us,
                         'Information about Project': project,
+                        'projectId': projectID,
                         'Contract Information': {
                           'dispute_resolution':
                               dispute_resolutionController.text,

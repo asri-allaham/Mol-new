@@ -1,3 +1,5 @@
+import 'package:Mollni/Dartpages/UserData/Sititing.dart';
+import 'package:Mollni/Dartpages/sighUpIn/LoginPage.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
@@ -78,12 +80,36 @@ class _MyProfile extends State<Profile> {
         backgroundColor: const Color(0xffE4F5ED),
         automaticallyImplyLeading: false,
         toolbarHeight: 30,
-        title: InkWell(
-          onTap: () => Navigator.pop(context),
-          child: const Icon(
-            Icons.arrow_back_ios_new,
-            color: Color(0xff012113),
-          ),
+        title: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            InkWell(
+              onTap: () => Navigator.pop(context),
+              child: const Icon(
+                Icons.arrow_back_ios_new,
+                color: Color(0xff012113),
+              ),
+            ),
+            Row(
+              children: [
+                Icon(Icons.notifications,
+                    color: const Color.fromARGB(255, 49, 90, 54), size: 30),
+                IconButton(
+                  onPressed: () {
+                    if (user?.uid == null) {
+                      Navigator.of(context).push(
+                          MaterialPageRoute(builder: (context) => LoginPage()));
+                    } else {
+                      Navigator.of(context).push(MaterialPageRoute(
+                          builder: (context) => ProfileInformation()));
+                    }
+                  },
+                  icon: Icon(Icons.settings,
+                      color: const Color.fromARGB(255, 49, 90, 54), size: 30),
+                )
+              ],
+            )
+          ],
         ),
       ),
       body: _userData == null

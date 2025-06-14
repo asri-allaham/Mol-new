@@ -596,7 +596,7 @@ class _MessagesPageState extends State<MessagesPage> {
                                         "isOwner:$isOwner iissender $isSender");
 
                                     if (isOwner || isSender) {
-                                      return Container(); // Hide buttons
+                                      return Container();
                                     }
 
                                     return Row(
@@ -1253,6 +1253,7 @@ class _MessagesPageState extends State<MessagesPage> {
             'type': 'contract',
             'timestamp': FieldValue.serverTimestamp(),
             'docId': doc.id,
+            'projectId': widget.projectID
           });
 
           _messageController.clear();
@@ -1293,16 +1294,39 @@ class _MessagesPageState extends State<MessagesPage> {
 
   void _acceptContract(BuildContext context, String docId) async {
     try {
-      final String? projectId = widget.projectID;
-      if (projectId == null) return;
+      final contractDoc = await FirebaseFirestore.instance
+          .collection('Contracts')
+          .doc(docId)
+          .get();
 
+      if (!contractDoc.exists) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Contract not found')),
+        );
+        return;
+      }
+
+      final contractData = contractDoc.data()!;
+      final effectiveProjectId = contractData['projectId'];
+
+      if (effectiveProjectId == null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Project ID not found in contract')),
+        );
+        return;
+      }
+
+      // Step 3: Reference the correct project's Contracts subcollection
       final contractRef = FirebaseFirestore.instance
           .collection('projects')
-          .doc(projectId)
+          .doc(effectiveProjectId)
           .collection('Contracts')
           .doc(docId);
 
+      // Step 4: Update adminAcceptance
       await contractRef.update({'adminAcceptance': true});
+
+      // Step 5: Notify user
       ScaffoldMessenger.of(context)
           .showSnackBar(const SnackBar(content: Text('Contract accepted')));
     } catch (e) {
@@ -1313,16 +1337,37 @@ class _MessagesPageState extends State<MessagesPage> {
 
   void _rejectContract(BuildContext context, String docId) async {
     try {
-      final String? projectId = widget.projectID;
-      if (projectId == null) return;
+      final contractDoc = await FirebaseFirestore.instance
+          .collection('Contracts')
+          .doc(docId)
+          .get();
+      if (!contractDoc.exists) {
+        print("docId$docId");
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Contract not found')),
+        );
+        return;
+      }
+
+      final contractData = contractDoc.data()!;
+      final effectiveProjectId = contractData['projectId'];
+
+      if (effectiveProjectId == null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Project ID not found in contract')),
+        );
+        return;
+      }
 
       final contractRef = FirebaseFirestore.instance
           .collection('projects')
-          .doc(projectId)
+          .doc(effectiveProjectId)
           .collection('Contracts')
           .doc(docId);
 
       await contractRef.update({'adminAcceptance': false});
+
       ScaffoldMessenger.of(context)
           .showSnackBar(const SnackBar(content: Text('Contract rejected')));
     } catch (e) {
