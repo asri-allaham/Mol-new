@@ -177,31 +177,6 @@ class _LoginPageState extends State<LoginPage> {
               const SizedBox(height: 10),
               Row(
                 children: [
-                  Transform.scale(
-                    scale: 1.3,
-                    child: Checkbox(
-                      value: _isChecked,
-                      onChanged: (bool? value) {
-                        setState(() {
-                          _isChecked = value!;
-                        });
-                      },
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(4),
-                      ),
-                      fillColor: MaterialStateProperty.resolveWith((states) {
-                        if (states.contains(MaterialState.selected)) {
-                          return const Color(0xffAABEB5);
-                        }
-                        return const Color(0xffECECEC);
-                      }),
-                      checkColor: const Color(0xff012113),
-                    ),
-                  ),
-                  const Text(
-                    "Remember me",
-                    style: TextStyle(fontSize: 15, color: Color(0xff012113)),
-                  ),
                   const Spacer(),
                   GestureDetector(
                     onTap: () {
@@ -315,9 +290,6 @@ class _LoginPageState extends State<LoginPage> {
   }
 
   Widget _buildOrDivider() {
-    final screenWidth = MediaQuery.of(context).size.width;
-    final lineWidth = (screenWidth - 69) / 2;
-
     return Row(
       children: [
         Expanded(
@@ -361,7 +333,7 @@ class _LoginPageState extends State<LoginPage> {
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Image.asset(
-              'lib/Images/google_logo.png', // Make sure this image exists
+              'lib/Images/google_logo.png',
               height: 24,
             ),
             const SizedBox(width: 12),
@@ -392,7 +364,7 @@ class _LoginPageState extends State<LoginPage> {
           onTap: () {
             Navigator.of(context).pushReplacement(
               MaterialPageRoute(builder: (context) => RegisterScreen()),
-            ); //asri.allaham@gmail.com/N@kahana1
+            );
           },
           child: const Text(
             "Sign Up",

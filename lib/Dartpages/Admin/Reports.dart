@@ -290,7 +290,7 @@ class _ReportsPageState extends State<DashBoard> {
                                           final projectData = projectDoc.data();
                                           final currentWarnings =
                                               projectData?['warningCount'] ?? 0;
-                                          print(projectData?['title']);
+                                          print(projectData?['name']);
 
                                           await projectDocRef.update({
                                             'warningCount': currentWarnings + 1,
@@ -307,17 +307,22 @@ class _ReportsPageState extends State<DashBoard> {
                                           }
                                           print(
                                               'warningCount $currentWarnings');
+                                          if (currentWarnings > 3) {
+                                            projectDocRef.update({
+                                              "removed": true,
+                                            });
+                                          }
                                         } else {
                                           print('Project not found.');
                                         }
                                       },
-                                      child: const Text("Reject"),
+                                      child: const Text("add Warnings"),
                                     ),
                                   ],
                                 ),
                               );
                             },
-                            child: const Text("Reject"),
+                            child: const Text("add Warnings?"),
                           ),
                         ],
                       ),

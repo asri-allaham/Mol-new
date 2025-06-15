@@ -1,18 +1,18 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
-class Adminacceptance extends StatefulWidget {
-  const Adminacceptance({super.key});
+class UserOverview extends StatefulWidget {
+  const UserOverview({super.key});
 
   @override
-  State<Adminacceptance> createState() => _AdminacceptanceState();
+  State<UserOverview> createState() => _UserOverviewState();
 }
 
-class _AdminacceptanceState extends State<Adminacceptance>
-    with SingleTickerProviderStateMixin {
-  bool _isLoading = true;
-  List<Map<String, dynamic>> posts = [];
-  List<Map<String, dynamic>> projects = [];
+class _UserOverviewState extends State<UserOverview>
+    with TickerProviderStateMixin {
+  bool _loading = true;
+  List<DocumentSnapshot> _projects = [];
+  List<DocumentSnapshot> _posts = [];
 
   late TabController _tabController;
 
@@ -20,278 +20,334 @@ class _AdminacceptanceState extends State<Adminacceptance>
   void initState() {
     super.initState();
     _tabController = TabController(length: 2, vsync: this);
-    fetchAllData();
+    fetchData();
   }
 
-  Future<void> fetchAllData() async {
-    setState(() {
-      _isLoading = true;
-    });
-    await Future.wait([fetchPostsAndOwners(), fetchProjectsAndOwners()]);
-    setState(() {
-      _isLoading = false;
-    });
+  Future<void> fetchData() async {
+    try {
+      final projectSnapshot = await FirebaseFirestore.instance
+          .collection('projects')
+          .where('Adminacceptance', isEqualTo: false)
+          .where('removed', isEqualTo: false)
+          .get();
+
+      final postSnapshot = await FirebaseFirestore.instance
+          .collection('post')
+          .where('Adminacceptance', isEqualTo: false)
+          .where('removed', isEqualTo: false)
+          .get();
+
+      setState(() {
+        _projects = projectSnapshot.docs;
+        _posts = postSnapshot.docs;
+        _loading = false;
+      });
+    } catch (e) {
+      print('Error fetching data: $e');
+      setState(() => _loading = false);
+    }
   }
 
-  Future<void> fetchPostsAndOwners() async {
-    final query = FirebaseFirestore.instance.collection('post');
-    final snapshot = await query.get();
+  @override
+  void dispose() {
+    _tabController.dispose();
+    super.dispose();
+  }
 
-    List<Map<String, dynamic>> loadedPosts = [];
-    List<Future<DocumentSnapshot>> userFutures = [];
-
-    for (var doc in snapshot.docs) {
-      final postData = doc.data();
-      final userId = postData['user_id'];
-      final adminAccepted = postData['Adminacceptance'] ?? false;
-      if (adminAccepted) continue;
-
-      userFutures.add(
-        FirebaseFirestore.instance.collection('users').doc(userId).get(),
+  Widget _buildProjectList() {
+    if (_projects.isEmpty) {
+      return const Center(
+        child: Text(
+          'No pending projects found',
+          style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+        ),
       );
-
-      loadedPosts.add(postData);
     }
 
-    final userSnapshots = await Future.wait(userFutures);
+    return ListView(
+      padding: const EdgeInsets.all(16),
+      children: [
+        const Text(
+          'Pending Projects:',
+          style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+        ),
+        ..._projects.map((doc) {
+          final data = doc.data() as Map<String, dynamic>;
+          final List<String> imageUrls =
+              (data['image_urls'] as List?)?.cast<String>() ?? [];
 
-    for (int i = 0; i < loadedPosts.length; i++) {
-      final userSnapshot = userSnapshots[i];
-      final ownerImage = userSnapshot.exists
-          ? (userSnapshot.data() as Map<String, dynamic>)['urlImage'] ?? ''
-          : '';
-
-      loadedPosts[i]['owner_image'] = ownerImage;
-    }
-
-    loadedPosts.sort((a, b) {
-      int nameCmp = a['name'].compareTo(b['name']);
-      if (nameCmp != 0) return nameCmp;
-      int descCmp = a['description'].compareTo(b['description']);
-      if (descCmp != 0) return descCmp;
-      return a['investment_amount'].compareTo(b['investment_amount']);
-    });
-
-    setState(() {
-      posts = loadedPosts;
-    });
-  }
-
-  Future<void> fetchProjectsAndOwners() async {
-    final query = FirebaseFirestore.instance.collection('projects');
-    final snapshot = await query.get();
-
-    List<Map<String, dynamic>> loadedProjects = [];
-    List<Future<DocumentSnapshot>> userFutures = [];
-
-    for (var doc in snapshot.docs) {
-      final projectData = doc.data();
-      final userId = projectData['user_id'];
-      final adminAccepted = projectData['Adminacceptance'] ?? false;
-      if (adminAccepted == true) continue;
-
-      userFutures.add(
-        FirebaseFirestore.instance.collection('users').doc(userId).get(),
-      );
-
-      loadedProjects.add(projectData);
-    }
-
-    final userSnapshots = await Future.wait(userFutures);
-
-    for (int i = 0; i < loadedProjects.length; i++) {
-      final userSnapshot = userSnapshots[i];
-      final ownerImage = userSnapshot.exists
-          ? (userSnapshot.data() as Map<String, dynamic>)['urlImage'] ?? ''
-          : '';
-
-      loadedProjects[i]['owner_image'] = ownerImage;
-    }
-
-    setState(() {
-      projects = loadedProjects;
-    });
-  }
-
-  Widget _buildGrid(List<Map<String, dynamic>> items, String type) {
-    return GridView.builder(
-      padding: const EdgeInsets.all(10),
-      itemCount: items.length,
-      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 1,
-        childAspectRatio: 0.72,
-        mainAxisSpacing: 10,
-      ),
-      itemBuilder: (ctx, index) {
-        final item = items[index] ?? {};
-        final imageUrls = item['image_urls'] as List?;
-        final imageUrl = imageUrls?[0];
-        final ownerImage = item['owner_image'] ?? 'lib/img/person1.png';
-        final dis = item['description'] ?? '';
-        final name = item['name'] ?? 'No Name';
-
-        return Card(
-          shape:
-              RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
-          elevation: 4,
-          child: Padding(
-            padding: const EdgeInsets.all(8),
+          return Card(
+            margin: const EdgeInsets.symmetric(vertical: 8),
             child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
+              mainAxisSize: MainAxisSize.min,
               children: [
-                Expanded(
-                  child: Stack(
-                    alignment: Alignment.bottomLeft,
+                ListTile(
+                  leading: SizedBox(
+                    width: 100,
+                    child: imageUrls.isEmpty
+                        ? const Icon(Icons.image_not_supported)
+                        : Row(
+                            children: imageUrls.map((url) {
+                              return Padding(
+                                padding: const EdgeInsets.only(right: 4.0),
+                                child: Image.network(
+                                  url,
+                                  width: 50,
+                                  height: 50,
+                                  fit: BoxFit.cover,
+                                ),
+                              );
+                            }).toList(),
+                          ),
+                  ),
+                  title: Text(data['name'] ?? 'Unnamed Project'),
+                  subtitle: Text(
+                    'Category: ${data['category'] ?? 'N/A'}\nInvestment: \$${data['investment_amount'] ?? 0}',
+                  ),
+                ),
+                // Buttons Section
+                Padding(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 8.0, vertical: 4),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.end,
                     children: [
-                      ClipRRect(
-                        borderRadius: const BorderRadius.vertical(
-                            top: Radius.circular(15)),
-                        child: imageUrl != null
-                            ? Image.network(
-                                imageUrl,
-                                fit: BoxFit.cover,
-                                width: double.infinity,
-                              )
-                            : Image.asset('lib/img/placeholder.png',
-                                fit: BoxFit.cover),
+                      TextButton.icon(
+                        onPressed: () {
+                          _acceptProject(doc.id);
+                          fetchData();
+                        },
+                        icon: const Icon(Icons.check, color: Colors.green),
+                        label: const Text('Accept'),
+                        style:
+                            TextButton.styleFrom(foregroundColor: Colors.green),
                       ),
-                      Positioned(
-                        bottom: 8,
-                        left: 8,
-                        child: Container(
-                          decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            border: Border.all(color: Colors.white, width: 2),
-                          ),
-                          child: ClipOval(
-                            child: Image.network(
-                              ownerImage,
-                              width: 25,
-                              height: 25,
-                              fit: BoxFit.cover,
-                              errorBuilder: (_, __, ___) => Image.asset(
-                                  'lib/img/person1.png',
-                                  width: 25,
-                                  height: 25),
-                            ),
-                          ),
-                        ),
+                      const SizedBox(width: 8),
+                      TextButton.icon(
+                        onPressed: () {
+                          _rejectProject(doc.id);
+                          fetchData();
+                        },
+                        icon: const Icon(Icons.close, color: Colors.red),
+                        label: const Text('Reject'),
+                        style:
+                            TextButton.styleFrom(foregroundColor: Colors.red),
                       ),
                     ],
                   ),
                 ),
-                const SizedBox(height: 8),
-                Text(
-                  name,
-                  style: const TextStyle(
-                      fontWeight: FontWeight.bold, fontSize: 16),
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
+              ],
+            ),
+          );
+        }).toList(),
+      ],
+    );
+  }
+
+  Widget _buildPostList() {
+    if (_posts.isEmpty) {
+      return const Center(
+        child: Text(
+          'No pending projects found',
+          style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+        ),
+      );
+    }
+
+    return ListView(
+      padding: const EdgeInsets.all(16),
+      children: [
+        const Text(
+          'Pending Projects:',
+          style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+        ),
+        ..._posts.map((doc) {
+          final data = doc.data() as Map<String, dynamic>;
+          final List<String> imageUrls =
+              (data['image_urls'] as List?)?.cast<String>() ?? [];
+
+          return Card(
+            margin: const EdgeInsets.symmetric(vertical: 8),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                ListTile(
+                  leading: SizedBox(
+                    width: 100,
+                    child: imageUrls.isEmpty
+                        ? const Icon(Icons.image_not_supported)
+                        : Row(
+                            children: imageUrls.map((url) {
+                              return Padding(
+                                padding: const EdgeInsets.only(right: 4.0),
+                                child: Image.network(
+                                  url,
+                                  width: 50,
+                                  height: 50,
+                                  fit: BoxFit.cover,
+                                ),
+                              );
+                            }).toList(),
+                          ),
+                  ),
+                  title: Text(data['name'] ?? 'Unnamed Project'),
+                  subtitle: Text(
+                    'description: ${data['description'] ?? 'N/A'}}',
+                  ),
                 ),
-                const SizedBox(height: 6),
-                Text(
-                  dis,
-                  style: TextStyle(fontSize: 13, color: Colors.grey[700]),
-                  maxLines: 3,
-                  overflow: TextOverflow.ellipsis,
-                ),
-                const SizedBox(height: 8),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceAround,
-                  children: [
-                    GestureDetector(
-                      onTap: () async {
-                        final collection =
-                            FirebaseFirestore.instance.collection(type);
-                        final querySnapshot = await collection
-                            .where('user_id', isEqualTo: item['user_id'])
-                            .where('postNumber', isEqualTo: item['postNumber'])
-                            .limit(1)
-                            .get();
-                        if (querySnapshot.docs.isNotEmpty) {
-                          final docRef = querySnapshot.docs.first.reference;
-                          await docRef.update({'Adminacceptance': true});
-                          fetchAllData();
-                        } else {
-                          final collection =
-                              FirebaseFirestore.instance.collection(type);
-                          final querySnapshot = await collection
-                              .where('user_id', isEqualTo: item['user_id'])
-                              .where('projectNumber',
-                                  isEqualTo: item['projectNumber'])
-                              .limit(1)
-                              .get();
-                          if (querySnapshot.docs.isNotEmpty) {
-                            final docRef = querySnapshot.docs.first.reference;
-                            await docRef.update({'Adminacceptance': true});
-                            fetchAllData();
-                          }
-                        }
-                      },
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(
-                            vertical: 10, horizontal: 20),
-                        decoration: BoxDecoration(
-                          color: const Color.fromARGB(255, 88, 200, 54),
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: const Text(
-                          "Accept",
-                          style: TextStyle(
-                              color: Colors.white, fontWeight: FontWeight.bold),
-                        ),
+                // Buttons Section
+                Padding(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 8.0, vertical: 4),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.end,
+                    children: [
+                      TextButton.icon(
+                        onPressed: () {
+                          _acceptPost(doc.id);
+                          fetchData();
+                        },
+                        icon: const Icon(Icons.check, color: Colors.green),
+                        label: const Text('Accept'),
+                        style:
+                            TextButton.styleFrom(foregroundColor: Colors.green),
                       ),
-                    ),
-                    GestureDetector(
-                      onTap: () {},
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(
-                            vertical: 10, horizontal: 20),
-                        decoration: BoxDecoration(
-                          color: const Color.fromARGB(255, 244, 54, 54),
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: const Text(
-                          "Reject",
-                          style: TextStyle(
-                              color: Colors.white, fontWeight: FontWeight.bold),
-                        ),
+                      const SizedBox(width: 8),
+                      TextButton.icon(
+                        onPressed: () {
+                          _rejectPost(doc.id);
+                          fetchData();
+                        },
+                        icon: const Icon(Icons.close, color: Colors.red),
+                        label: const Text('Reject'),
+                        style:
+                            TextButton.styleFrom(foregroundColor: Colors.red),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
               ],
             ),
-          ),
-        );
-      },
+          );
+        }).toList(),
+      ],
     );
   }
 
   @override
   Widget build(BuildContext context) {
+    if (_loading) {
+      return const Center(child: CircularProgressIndicator());
+    }
+
+    if (_projects.isEmpty && _posts.isEmpty) {
+      return Scaffold(
+        appBar: AppBar(
+          backgroundColor: Colors.transparent,
+          elevation: 0,
+          leading: IconButton(
+            icon: const Icon(Icons.arrow_back),
+            onPressed: () {
+              Navigator.of(context).pop();
+            },
+          ),
+        ),
+        body: const Center(
+          child: Text(
+            'None were found for the posts and project',
+            style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+          ),
+        ),
+      );
+    }
+
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Admin Acceptance'),
-        bottom: TabBar(
-          controller: _tabController,
-          tabs: const [
-            Tab(text: 'Posts'),
-            Tab(text: 'Projects'),
-          ],
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () {
+            Navigator.of(context).pop();
+          },
         ),
       ),
-      body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
-          : TabBarView(
+      body: Column(
+        children: [
+          Container(
+            color: Colors.green[50],
+            child: TabBar(
               controller: _tabController,
-              children: [
-                if (posts.length != 0) _buildGrid(posts, 'post'),
-                if (projects.isNotEmpty) ...[
-                  _buildGrid(projects, 'projects'),
-                ]
+              labelColor: Colors.green[800],
+              unselectedLabelColor: Colors.black54,
+              indicatorColor: Colors.green,
+              tabs: const [
+                Tab(text: 'Posts'),
+                Tab(text: 'Projects'),
               ],
             ),
+          ),
+          Expanded(
+            child: TabBarView(
+              controller: _tabController,
+              children: [
+                _buildPostList(),
+                _buildProjectList(),
+              ],
+            ),
+          ),
+        ],
+      ),
     );
+  }
+
+  void _acceptProject(String docId) async {
+    try {
+      await FirebaseFirestore.instance
+          .collection('projects')
+          .doc(docId)
+          .update({
+        'Adminacceptance': true,
+      });
+      print("✅ Project accepted and status updated!");
+    } catch (e) {
+      print("❌ Error updating document: $e");
+    }
+  }
+
+  void _rejectProject(String docId) async {
+    try {
+      await FirebaseFirestore.instance
+          .collection('projects')
+          .doc(docId)
+          .update({
+        'removed': true,
+      });
+      print("✅ Project rejected and status updated!");
+    } catch (e) {
+      print("❌ Error updating document: $e");
+    }
+  }
+
+  void _acceptPost(String docId) async {
+    try {
+      await FirebaseFirestore.instance.collection('post').doc(docId).update({
+        'Adminacceptance': true,
+      });
+      print("✅ Project accepted and status updated!");
+    } catch (e) {
+      print("❌ Error updating document: $e");
+    }
+  }
+
+  void _rejectPost(String docId) async {
+    try {
+      await FirebaseFirestore.instance.collection('post').doc(docId).update({
+        'removed': true,
+      });
+      print("✅ Project rejected and status updated!");
+    } catch (e) {
+      print("❌ Error updating document: $e");
+    }
   }
 }

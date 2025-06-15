@@ -1,4 +1,4 @@
-import 'package:Mollni/Dartpages/UserData/profile%20info%20display/NotificationService.dart';
+import 'package:Mollni/Dartpages/UserData/Notifications/NotificationService.dart';
 import 'package:flutter/material.dart';
 import '../switch.dart';
 import '../profile_information.dart';

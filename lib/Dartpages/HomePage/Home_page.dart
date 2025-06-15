@@ -121,7 +121,9 @@ class _HomepageState extends State<Homepage> {
         final projectData = doc.data();
 
         final adminAccepted = projectData['Adminacceptance'] ?? false;
-        if (adminAccepted != true) {
+        final removed = projectData['removed'] == true;
+
+        if (adminAccepted != true || removed) {
           continue;
         }
 
@@ -145,7 +147,7 @@ class _HomepageState extends State<Homepage> {
       for (int i = 0; i < loadedProjects.length; i++) {
         final userSnapshot = userSnapshots[i];
         final ownerImage = userSnapshot.exists
-            ? (userSnapshot.data() as Map<String, dynamic>)['urlImage'] ?? ''
+            ? (userSnapshot.data() as Map<String, dynamic>)['imageUrl'] ?? ''
             : '';
 
         loadedProjects[i]['owner_image'] = ownerImage;
@@ -184,7 +186,9 @@ class _HomepageState extends State<Homepage> {
         final postsData = doc.data();
         final userId = postsData['user_id'];
         final adminAccepted = postsData['Adminacceptance'] ?? false;
-        if (adminAccepted != true) {
+        final removed = postsData['removed'] == true;
+
+        if (adminAccepted != true || removed) {
           continue;
         }
         userFutures.add(
@@ -198,7 +202,7 @@ class _HomepageState extends State<Homepage> {
       for (int i = 0; i < loadedPosts.length; i++) {
         final userSnapshot = userSnapshots[i];
         final ownerImage = userSnapshot.exists
-            ? (userSnapshot.data() as Map<String, dynamic>)['urlImage'] ?? ''
+            ? (userSnapshot.data() as Map<String, dynamic>)['imageUrl'] ?? ''
             : '';
 
         loadedPosts[i]['owner_image'] = ownerImage;
@@ -252,6 +256,7 @@ class _HomepageState extends State<Homepage> {
     bool isadmin = false;
     if (_userData?['admin'] == true) isadmin = true;
     return Scaffold(
+      resizeToAvoidBottomInset: false,
       backgroundColor: const Color(0xffECECEC),
       body: Stack(
         children: [
@@ -527,10 +532,6 @@ class _HomepageState extends State<Homepage> {
                                 rejectPost(
                                     context: context,
                                     postNumber: post['postNumber']);
-                                setState(() {
-                                  posts.removeWhere((p) =>
-                                      p['postNumber'] == post['postNumber']);
-                                });
                               } else if (index == 1) {}
                             },
                           ),
@@ -914,8 +915,8 @@ class _HomepageState extends State<Homepage> {
     final bool? confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Confirm Rejection'),
-        content: const Text('Are you sure you want to reject this post?'),
+        title: const Text('Confirm removeding'),
+        content: const Text('Are you sure you want to remove this post?'),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(false),
@@ -957,14 +958,14 @@ class _HomepageState extends State<Homepage> {
       final docId = querySnapshot.docs.first.id;
       final postDoc = postCollection.doc(docId);
 
-      // Update the adminAcceptance field instead of deleting
-      await postDoc.update({'adminAcceptance': false});
+      await postDoc.update({'removed': true});
 
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Post rejected successfully!')),
+        const SnackBar(content: Text('Post removed successfully!')),
       );
+      fetchPostsAndOwners();
     } catch (e) {
-      print('Error rejecting post: $e');
+      print('Error removeding post: $e');
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Error: ${e.toString()}')),
       );

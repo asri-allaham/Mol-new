@@ -242,7 +242,9 @@ class _ImageUploaderPageState extends State<ProjectAdd> {
       'category': _selectedCategory ?? 'Uncategorized',
       'image_urls': imageUrls,
       'created_at': FieldValue.serverTimestamp(),
-      'projectNumber': projectNumber
+      'projectNumber': projectNumber,
+      'Adminacceptance': false,
+      'removed': false
     });
   }
 

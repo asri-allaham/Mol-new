@@ -256,6 +256,14 @@ class _MyProfile extends State<Profile> {
   }
 
   Widget _buildInfoSection(String title, String? value) {
+    String getTruncatedValue(String? input, {int maxLength = 20}) {
+      final text = input ?? 'Not provided';
+      if (text.length > maxLength) {
+        return '${text.substring(0, maxLength)}...';
+      }
+      return text;
+    }
+
     return Row(
       children: [
         const SizedBox(width: 22),
@@ -263,13 +271,15 @@ class _MyProfile extends State<Profile> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             const SizedBox(height: 23),
-            Text(title,
-                style: const TextStyle(color: Color(0xff54826D), fontSize: 18)),
+            Text(
+              title,
+              style: const TextStyle(color: Color(0xff54826D), fontSize: 18),
+            ),
             Row(
               children: [
                 const SizedBox(width: 6, height: 35),
                 Text(
-                  value ?? 'Not provided',
+                  getTruncatedValue(value),
                   style:
                       const TextStyle(color: Color(0xff012113), fontSize: 24),
                 )

@@ -15,7 +15,7 @@ import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'privacy.dart';
 import '../../simple_functions/Language.dart';
-import 'profile info display/Notifications.dart';
+import 'Notifications/Notifications.dart';
 import 'profile info display/UIDisplay.dart';
 
 class ProfileInformation extends StatefulWidget {
@@ -68,17 +68,6 @@ class _ProfileInformationState extends State<ProfileInformation> {
           ? const Center(child: CircularProgressIndicator())
           : ListView(
               children: [
-                Positioned(
-                  top: 0,
-                  left: 0,
-                  child: InkWell(
-                    onTap: () => Navigator.pop(context),
-                    child: const Icon(
-                      Icons.arrow_back_ios_new,
-                      color: Color(0xff012113),
-                    ),
-                  ),
-                ),
                 Container(height: 30, color: Color(0xffD2E4DC)),
                 Container(
                   color: const Color(0xffD2E4DC),
@@ -101,6 +90,17 @@ class _ProfileInformationState extends State<ProfileInformation> {
                       ],
                     ),
                   ]),
+                ),
+                Positioned(
+                  top: 0,
+                  left: 0,
+                  child: InkWell(
+                    onTap: () => Navigator.pop(context),
+                    child: const Icon(
+                      Icons.arrow_back_ios_new,
+                      color: Color(0xff012113),
+                    ),
+                  ),
                 ),
                 Center(
                   child: Stack(

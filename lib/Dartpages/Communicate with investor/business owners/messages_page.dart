@@ -3,7 +3,7 @@ import 'package:Mollni/Dartpages/projectadd%20post%20Contracts/TapsSystem.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'dart:async';
 import 'package:Mollni/Dartpages/HomePage/Home_page.dart';
-import 'package:Mollni/Dartpages/UserData/profile%20info%20display/NotificationService.dart';
+import 'package:Mollni/Dartpages/UserData/Notifications/NotificationService.dart';
 import 'package:Mollni/Dartpages/UserData/profile_information.dart';
 import 'package:Mollni/Dartpages/projectadd%20post%20Contracts/Contracts.dart';
 import 'package:Mollni/Dartpages/projectadd%20post%20Contracts/ProjectAdd.dart';
@@ -18,6 +18,7 @@ import 'package:provider/provider.dart';
 
 class MessagesPage extends StatefulWidget {
   String? projectID;
+
   MessagesPage({
     this.userId,
     super.key,
@@ -46,6 +47,8 @@ class _MessagesPageState extends State<MessagesPage> {
   List<DocumentSnapshot> allUsers = [];
   int _selectedIndex = 2;
   Timer? _chatPollingTimer;
+  Timer? _refreshTimer;
+
   Map<String, String> _lastSeenMessages = {};
   List<Map<String, dynamic>> projects = [], posts = [];
 
@@ -99,6 +102,9 @@ class _MessagesPageState extends State<MessagesPage> {
     print("Current User Email: ${_currentUser.email}");
     print("_currentChatId:$_currentChatId ");
     _listenToAllChatsRealTime();
+    _refreshTimer = Timer.periodic(Duration(seconds: 10), (_) {
+      setState(() {});
+    });
   }
 
   Future<void> fetchProjectsAndOwners([String? category, String? name]) async {
@@ -309,21 +315,22 @@ class _MessagesPageState extends State<MessagesPage> {
     }
   }
 
-  Future<Map<String, dynamic>?> getLastMessage(
-      String currentUserEmail, String otherUserEmail) async {
-    try {
-      final chatId = _generateChatId(currentUserEmail, otherUserEmail);
-      final snapshot = await FirebaseFirestore.instance
-          .collection('chats/$chatId/messages')
-          .orderBy('timestamp', descending: true)
-          .limit(1)
-          .get();
-
-      return snapshot.docs.isNotEmpty ? snapshot.docs.first.data() : null;
-    } catch (e) {
-      print('Error getting last message: $e');
-      return null;
-    }
+  Stream<Map<String, dynamic>?> getLastMessageStream(
+      String currentUserEmail, String userEmail) {
+    return FirebaseFirestore.instance
+        .collection('chats')
+        .doc(_generateChatId(currentUserEmail, userEmail))
+        .collection('messages')
+        .orderBy('timestamp', descending: true)
+        .limit(1)
+        .snapshots()
+        .map((snapshot) {
+      if (snapshot.docs.isNotEmpty) {
+        return snapshot.docs.first.data();
+      } else {
+        return null;
+      }
+    });
   }
 
   Stream<Map<String, dynamic>?> streamLastMessage(
@@ -1042,64 +1049,18 @@ class _MessagesPageState extends State<MessagesPage> {
                               return Dismissible(
                                 key: Key(userData['email']),
                                 direction: DismissDirection.endToStart,
-                                background: Container(
-                                  padding: const EdgeInsets.symmetric(
-                                      horizontal: 20),
-                                  alignment: Alignment.centerRight,
-                                  color: Colors.red,
-                                  child: Row(
-                                    mainAxisAlignment: MainAxisAlignment.end,
-                                    children: [
-                                      Icon(Icons.delete, color: Colors.white),
-                                      SizedBox(width: 8),
-                                      Text(
-                                        "Delete",
-                                        style: TextStyle(
-                                          color: Colors.white,
-                                          fontWeight: FontWeight.bold,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                                confirmDismiss: (direction) async {
-                                  return await showDialog<bool>(
-                                        context: context,
-                                        builder: (context) => AlertDialog(
-                                          title: const Text("Confirm Deletion"),
-                                          content: Text(
-                                              "Delete chat with ${userData['username']}?"),
-                                          actions: [
-                                            TextButton(
-                                              child: const Text("Cancel"),
-                                              onPressed: () =>
-                                                  Navigator.pop(context, false),
-                                            ),
-                                            TextButton(
-                                              child: const Text("Delete",
-                                                  style: TextStyle(
-                                                      color: Colors.red)),
-                                              onPressed: () =>
-                                                  Navigator.pop(context, true),
-                                            ),
-                                          ],
-                                        ),
-                                      ) ??
-                                      false;
-                                },
-                                onDismissed: (_) {
-                                  // Delete chat logic here
-                                },
                                 child: GestureDetector(
-                                  onTap: () => _openChat(
-                                      userEmail: userData['email'],
-                                      username: userData['username']),
-                                  child: FutureBuilder<Map<String, dynamic>?>(
-                                    future: getLastMessage(
+                                  onTap: () {
+                                    _openChat(
+                                        userEmail: userData['email'],
+                                        username: userData['username']);
+                                  },
+                                  child: StreamBuilder<Map<String, dynamic>?>(
+                                    stream: getLastMessageStream(
                                         _currentUser.email!, userData['email']),
                                     builder: (context, snapshot) {
                                       String messageText = "No messages yet";
-                                      String timeText = "Just now";
+                                      String timeText = "Just now.";
 
                                       if (snapshot.hasData &&
                                           snapshot.data != null) {
@@ -1108,6 +1069,9 @@ class _MessagesPageState extends State<MessagesPage> {
                                             message['text'] ?? "Attachment";
                                         timeText = _formatMessageTime(
                                             message['timestamp']);
+                                        if (timeText == "Just now.") {
+                                          timeText = "new!";
+                                        }
                                       }
 
                                       return _buildMessageItem(

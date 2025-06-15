@@ -308,7 +308,10 @@ class _ImageUploaderPageState extends State<Post> {
       'image_urls': imageUrls,
       'created_at': FieldValue.serverTimestamp(),
       'postNumber': postNumber,
-      'projectNumber': selectedProject!['projectNumber']
+      'projectNumber': selectedProject!['projectNumber'],
+      // ignore: equal_keys_in_map
+      'Adminacceptance': false,
+      'removed': false
     });
   }
 
@@ -323,7 +326,6 @@ class _ImageUploaderPageState extends State<Post> {
   @override
   Widget build(BuildContext context) {
     final screenWidth = MediaQuery.of(context).size.width;
-    final screenHeight = MediaQuery.of(context).size.height;
 
     return Scaffold(
       backgroundColor: const Color(0xffDAF8E1),
@@ -356,7 +358,7 @@ class _ImageUploaderPageState extends State<Post> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       const Text(
-                        'Project Name',
+                        'post Name',
                         style: TextStyle(
                             fontWeight: FontWeight.bold, fontSize: 15),
                       ),
@@ -375,7 +377,7 @@ class _ImageUploaderPageState extends State<Post> {
                       ),
                       const SizedBox(height: 15),
                       const Text(
-                        'Project Description',
+                        'post Description',
                         style: TextStyle(
                             fontWeight: FontWeight.bold, fontSize: 15),
                       ),
@@ -401,7 +403,7 @@ class _ImageUploaderPageState extends State<Post> {
               TextField(
                 decoration: InputDecoration(
                   prefixIcon: const Icon(Icons.search),
-                  hintText: 'Search projects to select',
+                  hintText: 'Search posts to select',
                   border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(10)),
                 ),
@@ -420,7 +422,7 @@ class _ImageUploaderPageState extends State<Post> {
                 child: _isLoading
                     ? const Center(child: CircularProgressIndicator())
                     : filteredProjects.isEmpty
-                        ? const Center(child: Text('No projects found'))
+                        ? const Center(child: Text('No posts found'))
                         : ListView.builder(
                             itemCount: filteredProjects.length,
                             itemBuilder: (context, index) {
@@ -431,7 +433,7 @@ class _ImageUploaderPageState extends State<Post> {
                                 tileColor:
                                     isSelected ? Colors.green.shade100 : null,
                                 title: Text(
-                                  project['name'] ?? 'Unnamed Project',
+                                  project['name'] ?? 'Unnamed post',
                                   style: TextStyle(
                                       fontWeight: isSelected
                                           ? FontWeight.bold

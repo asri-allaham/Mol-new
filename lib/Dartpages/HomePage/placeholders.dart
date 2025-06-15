@@ -395,11 +395,11 @@ class _PlaceholdersState extends State<Placeholders> {
                           children: [
                             CircleAvatar(
                               radius: 30,
-                              backgroundImage: _userData?['image_url'] != null
-                                  ? NetworkImage(_userData!['image_url'])
+                              backgroundImage: _userData?['imageUrl'] != null
+                                  ? NetworkImage(_userData!['imageUrl'])
                                   : null,
                               backgroundColor: Colors.grey[300],
-                              child: _userData?['image_url'] == null
+                              child: _userData?['imageUrl'] == null
                                   ? const Icon(Icons.person,
                                       color: Colors.white)
                                   : null,
@@ -1279,9 +1279,9 @@ class _PlaceholdersState extends State<Placeholders> {
       }
       final docId = querySnapshot.docs.first.id;
       final docRef = projectsCollection.doc(docId);
-      await docRef.update({'Adminacceptance': false});
+      await docRef.update({'removed': true});
 
-      querySnapshot['Adminacceptance'] = false;
+      await docRef.update({'removed': true});
       Navigator.of(context)
           .push(MaterialPageRoute(builder: (context) => const Homepage()));
     } catch (e) {
