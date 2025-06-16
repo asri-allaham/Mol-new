@@ -410,11 +410,16 @@ class _HomepageState extends State<Homepage> {
                     children: [
                       InkWell(
                         onTap: () {
-                          Map<String, dynamic> Project;
-                          Project = getProjectFromLocalList(
-                              post['user_id'], post['projectNumber'])!;
-                          Navigator.of(context).push(MaterialPageRoute(
-                              builder: (context) => Placeholders(Project)));
+                          if (user?.uid == null) {
+                            Navigator.of(context).push(MaterialPageRoute(
+                                builder: (context) => const LoginPage()));
+                          } else {
+                            Map<String, dynamic> Project;
+                            Project = getProjectFromLocalList(
+                                post['user_id'], post['projectNumber'])!;
+                            Navigator.of(context).push(MaterialPageRoute(
+                                builder: (context) => Placeholders(Project)));
+                          }
                         },
                         child: ClipRRect(
                           borderRadius: const BorderRadius.vertical(
@@ -584,8 +589,13 @@ class _HomepageState extends State<Homepage> {
                             ],
                             onItemTapped: (index) {
                               if (index == 0) {
-                                _reportWithReason(post['user_id'],
-                                    post['postNumber'], 'Post');
+                                if (user?.uid == null) {
+                                  Navigator.of(context).push(MaterialPageRoute(
+                                      builder: (context) => const LoginPage()));
+                                } else {
+                                  _reportWithReason(post['user_id'],
+                                      post['postNumber'], 'Post');
+                                }
                               }
                             },
                           ),
@@ -657,9 +667,14 @@ class _HomepageState extends State<Homepage> {
                 children: [
                   InkWell(
                     onTap: () {
-                      Navigator.of(context).push(MaterialPageRoute(
-                          builder: (context) =>
-                              Placeholders(projectList[index])));
+                      if (user?.uid == null) {
+                        Navigator.of(context).push(MaterialPageRoute(
+                            builder: (context) => const LoginPage()));
+                      } else {
+                        Navigator.of(context).push(MaterialPageRoute(
+                            builder: (context) =>
+                                Placeholders(projectList[index])));
+                      }
                     },
                     child: ClipRRect(
                       borderRadius: BorderRadius.circular(25),

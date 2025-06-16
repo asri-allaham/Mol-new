@@ -56,7 +56,6 @@ class _ProfileInformationState extends State<ProfileInformation> {
   Widget build(BuildContext context) {
     final user = FirebaseAuth.instance.currentUser;
     final appLang = Provider.of<AppLanguageProvider>(context);
-
     return Scaffold(
       appBar: AppBar(
         toolbarHeight: 2,
@@ -68,39 +67,34 @@ class _ProfileInformationState extends State<ProfileInformation> {
           ? const Center(child: CircularProgressIndicator())
           : ListView(
               children: [
+                Container(
+                  color: Color(0xffD2E4DC),
+                  height: 50,
+                  child: Stack(
+                    children: [
+                      Positioned(
+                        top: 12,
+                        left: 12,
+                        child: InkWell(
+                          onTap: () => Navigator.pop(context),
+                          child: const Icon(
+                            Icons.arrow_back_ios_new,
+                            color: Color(0xff012113),
+                            size: 20,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                // Rest of your original code remains unchanged
                 Container(height: 30, color: Color(0xffD2E4DC)),
                 Container(
                   color: const Color(0xffD2E4DC),
                   child: Row(children: [
                     SizedBox(width: 18),
                     Spacer(),
-                    SizedBox(width: 17),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        IconButton(
-                          onPressed: () {
-                            Navigator.of(context).push(MaterialPageRoute(
-                                builder: (context) => Favorites()));
-                          },
-                          icon: Icon(Icons.favorite,
-                              size: 35,
-                              color: Color.fromARGB(255, 182, 23, 23)),
-                        ),
-                      ],
-                    ),
                   ]),
-                ),
-                Positioned(
-                  top: 0,
-                  left: 0,
-                  child: InkWell(
-                    onTap: () => Navigator.pop(context),
-                    child: const Icon(
-                      Icons.arrow_back_ios_new,
-                      color: Color(0xff012113),
-                    ),
-                  ),
                 ),
                 Center(
                   child: Stack(

@@ -1,3 +1,4 @@
+import 'package:Mollni/Dartpages/HomePage/favorites.dart';
 import 'package:Mollni/Dartpages/UserData/Settings.dart';
 import 'package:Mollni/Dartpages/sighUpIn/LoginPage.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -92,6 +93,20 @@ class _MyProfile extends State<Profile> {
             ),
             Row(
               children: [
+                SizedBox(width: 17),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    IconButton(
+                      onPressed: () {
+                        Navigator.of(context).push(MaterialPageRoute(
+                            builder: (context) => Favorites()));
+                      },
+                      icon: Icon(Icons.favorite,
+                          size: 35, color: Color.fromARGB(255, 182, 23, 23)),
+                    ),
+                  ],
+                ),
                 Icon(Icons.notifications,
                     color: const Color.fromARGB(255, 49, 90, 54), size: 30),
                 IconButton(

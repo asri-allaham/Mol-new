@@ -643,6 +643,18 @@ class _MessagesPageState extends State<MessagesPage> {
                       );
                     },
                   ),
+                  SizedBox(
+                    width: 5,
+                  ),
+                  Text(
+                    _currentOtherUserName,
+                    style: TextStyle(
+                      color: Color.fromARGB(255, 85, 147, 104),
+                      fontSize: 15,
+                      fontWeight: FontWeight.w600,
+                      letterSpacing: 0.5,
+                    ),
+                  ),
                 ],
               ),
               InkWell(
@@ -1059,7 +1071,7 @@ class _MessagesPageState extends State<MessagesPage> {
                                     stream: getLastMessageStream(
                                         _currentUser.email!, userData['email']),
                                     builder: (context, snapshot) {
-                                      String messageText = "No messages yet";
+                                      String messageText = "";
                                       String timeText = "Just now.";
 
                                       if (snapshot.hasData &&
@@ -1073,16 +1085,20 @@ class _MessagesPageState extends State<MessagesPage> {
                                           timeText = "new!";
                                         }
                                       }
-
-                                      return _buildMessageItem(
-                                        name: userData['username'],
-                                        message: messageText,
-                                        time: timeText,
-                                        userEmail: userData['email'],
-                                        isUnread: false,
-                                        isOnline: userData['isOnline'] ?? false,
-                                        showTime: true,
-                                      );
+                                      if (messageText == "") {
+                                        return SizedBox();
+                                      } else {
+                                        return _buildMessageItem(
+                                          name: userData['username'],
+                                          message: messageText,
+                                          time: timeText,
+                                          userEmail: userData['email'],
+                                          isUnread: false,
+                                          isOnline:
+                                              userData['isOnline'] ?? false,
+                                          showTime: true,
+                                        );
+                                      }
                                     },
                                   ),
                                 ),
