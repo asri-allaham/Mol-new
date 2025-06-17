@@ -7,7 +7,7 @@ import 'package:Mollni/Dartpages/HomePage/viewItems.dart';
 import 'package:Mollni/Dartpages/UserData/Notifications/Notifications.dart';
 import 'package:Mollni/Dartpages/UserData/Settings.dart';
 import 'package:Mollni/Dartpages/UserData/profile_information.dart';
-import 'package:Mollni/Dartpages/projectadd%20post%20Contracts/TapsSystem.dart';
+import 'package:Mollni/Dartpages/project%20post%20Contracts/TapsSystem.dart';
 import 'package:Mollni/Dartpages/sighUpIn/LoginPage.dart';
 import 'package:Mollni/simple_functions/star_menu_button.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -282,65 +282,70 @@ class _HomepageState extends State<Homepage> {
               children: [
                 const SizedBox(height: 20),
                 if (projects.isNotEmpty) ...[
-                  if (projects.length > 5) ...[
-                    _buildSectionTitle("the_most_popular".tr()),
-                    const SizedBox(height: 12),
-                    _buildImageSlider(
-                      mostPopularProjects.take(5).toList(),
-                      _currentPopularImageIndex,
-                      (index) {
-                        setState(() {
-                          _currentPopularImageIndex = index;
-                        });
-                      },
-                      5,
-                    ),
-                    _buildInfoRow(_currentPopularImageIndex, 5),
+                  if (mostPopularProjects.isNotEmpty) ...[
+                    if (mostPopularProjects.length > 5) ...[
+                      _buildSectionTitle("the_most_popular".tr()),
+                      const SizedBox(height: 12),
+                      _buildImageSlider(
+                        mostPopularProjects.take(5).toList(),
+                        _currentPopularImageIndex,
+                        (index) {
+                          setState(() {
+                            _currentPopularImageIndex = index;
+                          });
+                        },
+                        5,
+                      ),
+                      _buildInfoRow(_currentPopularImageIndex, 5),
+                      const SizedBox(height: 30),
+                      _buildSectionTitle("highest_investment".tr()),
+                      const SizedBox(height: 12),
+                      _buildImageSlider(
+                        projects.take(5).toList(),
+                        _currentInvestmentImageIndex,
+                        (index) {
+                          setState(() {
+                            _currentInvestmentImageIndex = index;
+                          });
+                        },
+                        5,
+                      ),
+                      _buildInfoRow(_currentInvestmentImageIndex, 5),
+                      const SizedBox(height: 30),
+                      _DisplayItem(),
+                    ] else ...[
+                      _buildSectionTitle("the_most_popular".tr()),
+                      const SizedBox(height: 12),
+                      _buildImageSlider(
+                        mostPopularProjects,
+                        _currentPopularImageIndex,
+                        (index) {
+                          setState(() {
+                            _currentPopularImageIndex = index;
+                          });
+                        },
+                        mostPopularProjects.length,
+                      ),
+                    ],
+                  ],
+                  if (highestInvestmentProjects.isNotEmpty) ...[
+                    _buildInfoRow(_currentPopularImageIndex,
+                        highestInvestmentProjects.length),
                     const SizedBox(height: 30),
                     _buildSectionTitle("highest_investment".tr()),
                     const SizedBox(height: 12),
                     _buildImageSlider(
-                      projects.take(5).toList(),
+                      highestInvestmentProjects,
                       _currentInvestmentImageIndex,
                       (index) {
                         setState(() {
                           _currentInvestmentImageIndex = index;
                         });
                       },
-                      5,
+                      highestInvestmentProjects.length,
                     ),
-                    _buildInfoRow(_currentInvestmentImageIndex, 5),
-                    const SizedBox(height: 30),
-                    _DisplayItem(),
-                  ] else ...[
-                    _buildSectionTitle("the_most_popular".tr()),
-                    const SizedBox(height: 12),
-                    _buildImageSlider(
-                      mostPopularProjects,
-                      _currentPopularImageIndex,
-                      (index) {
-                        setState(() {
-                          _currentPopularImageIndex = index;
-                        });
-                      },
-                      projects.length,
-                    ),
-                    _buildInfoRow(_currentPopularImageIndex, projects.length),
-                    const SizedBox(height: 30),
-                    _buildSectionTitle("highest_investment".tr()),
-                    const SizedBox(height: 12),
-                    _buildImageSlider(
-                      projects,
-                      _currentInvestmentImageIndex,
-                      (index) {
-                        setState(() {
-                          _currentInvestmentImageIndex = index;
-                        });
-                      },
-                      projects.length,
-                    ),
-                    _buildInfoRow(
-                        _currentInvestmentImageIndex, projects.length),
+                    _buildInfoRow(_currentInvestmentImageIndex,
+                        highestInvestmentProjects.length),
                     const SizedBox(height: 30),
                     _DisplayItem(),
                   ]
@@ -666,6 +671,7 @@ class _HomepageState extends State<Homepage> {
         onPageChanged: onChanged,
         itemBuilder: (context, index) {
           if (index >= projectList.length) return SizedBox.shrink();
+          fetchOwnerNames(projectList);
           final imageUrlList = projectList[index]['image_urls'];
           final imageUrl = (imageUrlList is List && imageUrlList.isNotEmpty)
               ? imageUrlList[0]
@@ -674,7 +680,7 @@ class _HomepageState extends State<Homepage> {
               projectList[index]['owner_image'] ?? 'lib/img/person1.png';
           final screenWidth = MediaQuery.of(context).size.width;
           final imageSize = screenWidth * 0.9;
-
+          // final ownerName = projectList[index]['ownerName'] ?? 'Unknown';
           return Center(
             child: Padding(
               padding: const EdgeInsets.symmetric(horizontal: 10),
@@ -943,12 +949,29 @@ class _HomepageState extends State<Homepage> {
         final page = getPageForIndex(_selectedIndex);
         if (page is! SizedBox) {
           Navigator.of(context)
-              .push(MaterialPageRoute(builder: (context) => page));
+              .pushReplacement(MaterialPageRoute(builder: (context) => page));
         }
       },
       child: Icon(icon,
           color: _selectedIndex == index ? Colors.white : Colors.white70),
     );
+  }
+
+  Future<void> fetchOwnerNames(List<Map<String, dynamic>> projectList) async {
+    for (var project in projectList) {
+      final ownerId = project['user_id'];
+      if (ownerId != null) {
+        final userDoc = await FirebaseFirestore.instance
+            .collection('users')
+            .doc(ownerId)
+            .get();
+        final ownerName = userDoc.data()?['username'] ?? 'Unknown';
+        print("ownerName: $ownerName");
+        project['ownerName'] = ownerName;
+      } else {
+        project['ownerName'] = 'Unknown';
+      }
+    }
   }
 
   Future<void> rejectPost({

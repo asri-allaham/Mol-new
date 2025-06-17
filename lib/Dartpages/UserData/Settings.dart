@@ -2,7 +2,7 @@ import 'package:Mollni/Dartpages/Communicate%20with%20investor/business%20owners
 import 'package:Mollni/Dartpages/HomePage/Home_page.dart';
 import 'package:Mollni/Dartpages/HomePage/favorites.dart';
 import 'package:Mollni/Dartpages/UserData/edit_profile.dart';
-import 'package:Mollni/Dartpages/projectadd%20post%20Contracts/ProjectAdd.dart';
+import 'package:Mollni/Dartpages/project%20post%20Contracts/ProjectAdd.dart';
 import 'package:Mollni/Dartpages/sighUpIn/LoginPage.dart';
 import 'package:Mollni/Dartpages/sighUpIn/login_state.dart';
 import 'package:Mollni/i18n/LanguageScreen.dart';

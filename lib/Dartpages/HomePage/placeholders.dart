@@ -1,6 +1,7 @@
 import 'package:Mollni/Dartpages/Communicate%20with%20investor/business%20owners/messages_page.dart';
 import 'package:Mollni/Dartpages/HomePage/Home_page.dart';
 import 'package:Mollni/Dartpages/HomePage/ProjectImagesCarousel.dart';
+import 'package:Mollni/Dartpages/project%20post%20Contracts/ProjectEdit.dart';
 import 'package:Mollni/Dartpages/sighUpIn/LoginPage.dart';
 import 'package:Mollni/simple_functions/star_menu_button.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -239,7 +240,7 @@ class _PlaceholdersState extends State<Placeholders> {
             .toList();
 
         print("ratings.length >= 1: ${ratings.length >= 1}");
-        if (ratings.length >= 1) {
+        if (ratings.length >= 5) {
           double avg = ratings.reduce((a, b) => a! + b!)! / ratings.length;
           await doc.reference.update({'avgrating': avg});
         } else {
@@ -395,11 +396,11 @@ class _PlaceholdersState extends State<Placeholders> {
                           children: [
                             CircleAvatar(
                               radius: 30,
-                              backgroundImage: _userData?['imageUrl'] != null
-                                  ? NetworkImage(_userData!['imageUrl'])
+                              backgroundImage: project['owner_image'] != null
+                                  ? NetworkImage(project['owner_image'])
                                   : null,
                               backgroundColor: Colors.grey[300],
-                              child: _userData?['imageUrl'] == null
+                              child: widget.projectList['owner_image'] == null
                                   ? const Icon(Icons.person,
                                       color: Colors.white)
                                   : null,
@@ -409,7 +410,7 @@ class _PlaceholdersState extends State<Placeholders> {
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  Text(_userData?['username'] ?? "Unknown User",
+                                  Text(project['ownerName'] ?? "Unknown User",
                                       style: const TextStyle(
                                           fontSize: 18,
                                           fontWeight: FontWeight.bold,
@@ -521,21 +522,22 @@ class _PlaceholdersState extends State<Placeholders> {
                           ],
                         ),
                         if (user?.uid != null &&
-                            (user!.uid == widget.projectList['user_id'] ||
-                                _userData!['admin'] == true))
+                            (user!.uid == widget.projectList['user_id'])) ...[
                           Padding(
                             padding: const EdgeInsets.only(left: 100),
                             child: SizedBox(
                               width: 130,
                               child: ElevatedButton.icon(
                                 onPressed: () {
-                                  deleteProject(context, user!.uid,
-                                      widget.projectList['projectNumber']);
+                                  Navigator.of(context).push(MaterialPageRoute(
+                                      builder: (context) => ProjectEdit(
+                                            projectList: widget.projectList,
+                                          )));
                                 },
                                 icon:
-                                    const Icon(Icons.delete, color: Colors.red),
-                                label: const Text("Delete",
-                                    style: TextStyle(color: Colors.red)),
+                                    const Icon(Icons.edit, color: Colors.blue),
+                                label: const Text("Edit",
+                                    style: TextStyle(color: Colors.blue)),
                                 style: ElevatedButton.styleFrom(
                                     backgroundColor: Colors.white,
                                     shape: RoundedRectangleBorder(
@@ -545,6 +547,30 @@ class _PlaceholdersState extends State<Placeholders> {
                               ),
                             ),
                           ),
+                          if (_userData!['admin'] == true)
+                            Padding(
+                              padding: const EdgeInsets.only(left: 100),
+                              child: SizedBox(
+                                width: 130,
+                                child: ElevatedButton.icon(
+                                  onPressed: () {
+                                    deleteProject(context, user!.uid,
+                                        widget.projectList['projectNumber']);
+                                  },
+                                  icon: const Icon(Icons.delete,
+                                      color: Colors.red),
+                                  label: const Text("Delete",
+                                      style: TextStyle(color: Colors.red)),
+                                  style: ElevatedButton.styleFrom(
+                                      backgroundColor: Colors.white,
+                                      shape: RoundedRectangleBorder(
+                                          borderRadius:
+                                              BorderRadius.circular(12)),
+                                      elevation: 4),
+                                ),
+                              ),
+                            ),
+                        ],
                         const Divider(color: Color(0xffE0E7F0), thickness: 1),
                         const SizedBox(height: 16),
                         if (!isUserInRatings(currentUserId!))

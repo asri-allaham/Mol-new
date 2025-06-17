@@ -1,10 +1,10 @@
 import 'package:Mollni/Dartpages/Admin/AdminTapsSystem.dart';
-import 'package:Mollni/Dartpages/projectadd%20post%20Contracts/TapsSystem.dart';
+import 'package:Mollni/Dartpages/project%20post%20Contracts/TapsSystem.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'dart:async';
 import 'package:Mollni/Dartpages/HomePage/Home_page.dart';
 import 'package:Mollni/Dartpages/UserData/profile_information.dart';
-import 'package:Mollni/Dartpages/projectadd%20post%20Contracts/Contracts.dart';
+import 'package:Mollni/Dartpages/project%20post%20Contracts/Contracts.dart';
 import 'package:Mollni/Dartpages/sighUpIn/LoginPage.dart';
 import 'package:Mollni/main.dart';
 import 'package:easy_localization/easy_localization.dart';
@@ -1333,7 +1333,7 @@ class _MessagesPageState extends State<MessagesPage> {
         });
         if (_selectedIndex == 0) {
           if (user != null) {
-            Navigator.of(context).push(
+            Navigator.of(context).pushReplacement(
                 MaterialPageRoute(builder: (context) => const Homepage()));
           } else {
             Navigator.of(context).push(
@@ -1341,19 +1341,19 @@ class _MessagesPageState extends State<MessagesPage> {
           }
         } else if (index == 1) {
           if (user != null && (_userData?['admin'] ?? false)) {
-            Navigator.of(context).push(MaterialPageRoute(
+            Navigator.of(context).pushReplacement(MaterialPageRoute(
                 builder: (context) => Admintapssystem(projects, posts)));
           } else {
             user != null
-                ? Navigator.of(context)
-                    .push(MaterialPageRoute(builder: (context) => BottomTabs()))
+                ? Navigator.of(context).pushReplacement(
+                    MaterialPageRoute(builder: (context) => BottomTabs()))
                 : Navigator.of(context)
                     .push(MaterialPageRoute(builder: (context) => LoginPage()));
           }
         } else if (_selectedIndex == 3) {
           if (user != null) {
-            Navigator.of(context)
-                .push(MaterialPageRoute(builder: (context) => const Profile()));
+            Navigator.of(context).pushReplacement(
+                MaterialPageRoute(builder: (context) => const Profile()));
           } else {
             Navigator.of(context).push(
                 MaterialPageRoute(builder: (context) => const LoginPage()));
