@@ -474,7 +474,7 @@ class _ImageUploaderPageState extends State<ProjectAdd> {
                             borderRadius: BorderRadius.circular(10)),
                       ),
                       child: const Text(
-                        "Upload to Firebase",
+                        "confrom upload",
                         style: TextStyle(
                             fontSize: 16,
                             color: Colors.white,

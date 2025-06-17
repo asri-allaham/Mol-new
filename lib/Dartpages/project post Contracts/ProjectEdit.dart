@@ -130,6 +130,14 @@ class _ImageUploaderPageState extends State<ProjectEdit> {
     badWordsSoundex = {for (var w in badWords) w: soundex(w)};
     print(
         'ProjectEdit widget initialized with projectList: ${widget.projectList}');
+    _projectNameController.text = widget.projectList['name'] ?? '';
+    _investmentAmountController.text =
+        widget.projectList['investment_amount']?.toString() ?? '';
+    _projectDescriptionController.text =
+        widget.projectList['description'] ?? '';
+    _selectedCategory = widget.projectList['category'] ?? 'Uncategorized';
+
+    print('Selected images: $_selectedImages');
   }
 
   bool containsBadWord(String text) {
@@ -205,7 +213,7 @@ class _ImageUploaderPageState extends State<ProjectEdit> {
         downloadUrls.add(downloadUrl);
       }
 
-      await _saveProjectDetailsToFirestore(downloadUrls);
+      await _updateProjectDetailsInFirestore(downloadUrls);
 
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Upload and save successful!')),
@@ -231,17 +239,23 @@ class _ImageUploaderPageState extends State<ProjectEdit> {
     }
   }
 
-  Future<void> _saveProjectDetailsToFirestore(List<String> imageUrls) async {
-    await FirebaseFirestore.instance.collection('projects').add({
+  Future<void> _updateProjectDetailsInFirestore(List<String> imageUrls) async {
+    final docId = widget.projectList['id'];
+    if (docId == null) {
+      print('Error: Missing document ID');
+      return;
+    }
+
+    await FirebaseFirestore.instance.collection('projects').doc(docId).update({
       'name': _projectNameController.text.trim(),
       'investment_amount':
           double.tryParse(_investmentAmountController.text.trim()) ?? 0,
       'description': _projectDescriptionController.text.trim(),
       'category': _selectedCategory ?? 'Uncategorized',
       'image_urls': imageUrls,
-      'created_at': FieldValue.serverTimestamp(),
+      'created_at': widget.projectList['created_at'] ?? Timestamp.now(),
       'Adminacceptance': false,
-      'removed': false
+      'removed': false,
     });
   }
 
@@ -255,7 +269,7 @@ class _ImageUploaderPageState extends State<ProjectEdit> {
       appBar: AppBar(
         backgroundColor: const Color(0xff2F7E43),
         title: const Text(
-          "Add Project",
+          "Edit Project",
           style: TextStyle(
             color: Colors.white,
             fontWeight: FontWeight.bold,
@@ -281,7 +295,7 @@ class _ImageUploaderPageState extends State<ProjectEdit> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       const Text(
-                        "Upload Project Images",
+                        "Upload Project Images\n(old images will be replaced)",
                         style: TextStyle(
                           fontSize: 18,
                           fontWeight: FontWeight.bold,
@@ -471,7 +485,7 @@ class _ImageUploaderPageState extends State<ProjectEdit> {
                             borderRadius: BorderRadius.circular(10)),
                       ),
                       child: const Text(
-                        "Upload to Firebase",
+                        "Confrom edit Project",
                         style: TextStyle(
                             fontSize: 16,
                             color: Colors.white,

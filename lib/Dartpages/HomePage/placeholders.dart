@@ -531,7 +531,7 @@ class _PlaceholdersState extends State<Placeholders> {
                                 onPressed: () {
                                   Navigator.of(context).push(MaterialPageRoute(
                                       builder: (context) => ProjectEdit(
-                                            projectList: widget.projectList,
+                                            widget.projectList,
                                           )));
                                 },
                                 icon:
