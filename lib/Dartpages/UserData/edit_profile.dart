@@ -2,12 +2,10 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import '../simple_functions/botton.dart';
-import 'profile_information.dart';
-import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:firebase_storage/firebase_storage.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'dart:io';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 class EdidProfile extends StatefulWidget {
   const EdidProfile({super.key});
@@ -36,17 +34,6 @@ class _EdidProfileState extends State<EdidProfile> {
     'Jerash',
     'Ajloun'
   ];
-  Future<void> changeProfilePicture(String userId, String oldImagePath) async {
-    try {
-      if (_imageFile == null) return;
-      final newImageUrl =
-          await uploadImageToFirebase(_imageFile!, oldImagePath);
-      await updateFirestoreProfilePicture(userId, newImageUrl);
-      print("Profile picture updated successfully!");
-    } catch (e) {
-      print("Error changing profile picture: $e");
-    }
-  }
 
   Future<File?> pickImage() async {
     final picker = ImagePicker();
@@ -57,29 +44,6 @@ class _EdidProfileState extends State<EdidProfile> {
     } else {
       print("No image selected.");
       return null;
-    }
-  }
-
-  Future<String> uploadImageToFirebase(File imageFile, String filePath) async {
-    try {
-      final storageRef = FirebaseStorage.instance.ref().child(filePath);
-      final uploadTask = await storageRef.putFile(imageFile);
-      final downloadURL = await uploadTask.ref.getDownloadURL();
-      return downloadURL;
-    } catch (e) {
-      print("Error uploading image: $e");
-      throw e;
-    }
-  }
-
-  Future<void> deleteOldImage(String oldFilePath) async {
-    try {
-      final ref = FirebaseStorage.instance.ref().child(oldFilePath);
-      await ref.delete();
-      print("Old image deleted successfully.");
-    } catch (e) {
-      print("Error deleting old image: $e");
-      throw e;
     }
   }
 
@@ -102,6 +66,30 @@ class _EdidProfileState extends State<EdidProfile> {
   final TextEditingController _phoneController = TextEditingController();
   final TextEditingController _addressController = TextEditingController();
   Map<String, dynamic>? _userData;
+  // ...inside your EditProfilePage class...
+
+  Future<void> _pickAndUploadProfileImage() async {
+    final picker = ImagePicker();
+    final pickedFile = await picker.pickImage(source: ImageSource.gallery);
+
+    if (pickedFile != null) {
+      final storageRef = FirebaseStorage.instance
+          .ref()
+          .child('profile_images/${_userData?['uid']}');
+      await storageRef.putFile(File(pickedFile.path));
+      final imageUrl = await storageRef.getDownloadURL();
+
+      await FirebaseFirestore.instance
+          .collection('users')
+          .doc(_userData?['uid'])
+          .update({'imageUrl': imageUrl});
+
+      setState(() {
+        _userData?['imageUrl'] = imageUrl;
+      });
+    }
+  }
+
   @override
   void initState() {
     super.initState();
@@ -265,7 +253,6 @@ class _EdidProfileState extends State<EdidProfile> {
                 ),
               ),
 
-              // Nick Name Field
               Container(
                 width: double.infinity,
                 height: 50,
@@ -513,17 +500,17 @@ class _EdidProfileState extends State<EdidProfile> {
                 ),
               ),
 
-              GradientButton(
-                text: "upload new profile image",
-                width: double.infinity,
-                onTap: () async {
-                  final pickedFile = await pickImage();
-                  if (pickedFile != null) {
-                    setState(() {
-                      _imageFile = pickedFile;
-                    });
-                  }
-                },
+              InkWell(
+                onTap: _pickAndUploadProfileImage,
+                child: CircleAvatar(
+                  radius: 50,
+                  backgroundImage: _userData?['profileImage'] != null
+                      ? NetworkImage(_userData!['profileImage'])
+                      : null,
+                  child: _userData?['profileImage'] == null
+                      ? Icon(Icons.person, size: 50)
+                      : null,
+                ),
               ),
               SizedBox(
                 height: 20,
@@ -553,13 +540,6 @@ class _EdidProfileState extends State<EdidProfile> {
                         .collection('users')
                         .doc(uid)
                         .update(updatedData);
-
-                    // if (_imageFile != null) {
-                    //   String oldImagePath = _userData!['imageUrl'] ?? '';
-                    //   print("oldImagePath");
-                    //   print(oldImagePath);
-                    //   await changeProfilePicture(uid, oldImagePath);
-                    // }
 
                     setState(() {
                       _userData = {

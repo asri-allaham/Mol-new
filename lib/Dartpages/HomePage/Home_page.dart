@@ -28,10 +28,10 @@ class _HomepageState extends State<Homepage> {
   List<String?> categories = [
     null,
     'Technology',
-    'Health',
     'Education',
-    'Art',
     'Finance',
+    'Art',
+    'Health',
     'Other'
   ];
   final List<String> investmentMessages = [
@@ -256,6 +256,21 @@ class _HomepageState extends State<Homepage> {
     }
     bool isadmin = false;
     if (_userData?['admin'] == true) isadmin = true;
+    List<Map<String, dynamic>> mostPopularProjects =
+        List<Map<String, dynamic>>.from(projects);
+    mostPopularProjects.sort((a, b) {
+      final aRating = a['avgrating'];
+      final bRating = b['avgrating'];
+      if (aRating == null && bRating == null) return 0;
+      if (aRating == null) return 1;
+      if (bRating == null) return -1;
+      return (bRating as num).compareTo(aRating as num);
+    });
+    List<Map<String, dynamic>> highestInvestmentProjects =
+        List<Map<String, dynamic>>.from(projects);
+    highestInvestmentProjects.sort((a, b) =>
+        (b['investment_amount'] ?? 0).compareTo(a['investment_amount'] ?? 0));
+
     return Scaffold(
       resizeToAvoidBottomInset: false,
       backgroundColor: const Color(0xffECECEC),
@@ -271,7 +286,7 @@ class _HomepageState extends State<Homepage> {
                     _buildSectionTitle("the_most_popular".tr()),
                     const SizedBox(height: 12),
                     _buildImageSlider(
-                      projects.take(5).toList(),
+                      mostPopularProjects.take(5).toList(),
                       _currentPopularImageIndex,
                       (index) {
                         setState(() {
@@ -301,7 +316,7 @@ class _HomepageState extends State<Homepage> {
                     _buildSectionTitle("the_most_popular".tr()),
                     const SizedBox(height: 12),
                     _buildImageSlider(
-                      projects,
+                      mostPopularProjects,
                       _currentPopularImageIndex,
                       (index) {
                         setState(() {

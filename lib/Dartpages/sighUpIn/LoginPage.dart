@@ -3,6 +3,7 @@ import 'package:Mollni/Dartpages/sighUpIn/Forgot_password.dart';
 import 'package:Mollni/Dartpages/sighUpIn/Registration.dart';
 import 'package:Mollni/Dartpages/sighUpIn/login_state.dart';
 import 'package:Mollni/simple_functions/botton.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_sign_in/google_sign_in.dart';
@@ -103,6 +104,30 @@ class _LoginPageState extends State<LoginPage> {
         idToken: googleAuth.idToken,
       );
       await FirebaseAuth.instance.signInWithCredential(credential);
+
+      final user = FirebaseAuth.instance.currentUser;
+      if (user != null) {
+        final userDocRef =
+            FirebaseFirestore.instance.collection('users').doc(user.uid);
+        final userDoc = await userDocRef.get();
+
+        if (!userDoc.exists) {
+          await userDocRef.set({
+            'nickName': user.displayName,
+            'email': user.email,
+            'imageUrl': user.photoURL,
+            'createdAt': FieldValue.serverTimestamp(),
+            "phone": "",
+            "admin": false,
+            'address': "",
+          });
+        } else {
+          // Existing user (sign in)
+          await userDocRef.update({
+            'lastSignIn': FieldValue.serverTimestamp(),
+          });
+        }
+      }
 
       Provider.of<LoginState>(context, listen: false).login();
       Navigator.of(context)

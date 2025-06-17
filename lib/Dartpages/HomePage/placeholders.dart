@@ -228,6 +228,24 @@ class _PlaceholdersState extends State<Placeholders> {
           .where('projectNumber', isEqualTo: projectNumber)
           .where('user_id', isEqualTo: ownerUserId)
           .get();
+
+      if (querySnapshot.docs.isNotEmpty) {
+        final doc = querySnapshot.docs.first;
+        final ratingsSnapshot = await doc.reference.collection('ratings').get();
+
+        final ratings = ratingsSnapshot.docs
+            .map((d) => d.data()['Starnumber'] as num?)
+            .where((v) => v != null)
+            .toList();
+
+        print("ratings.length >= 1: ${ratings.length >= 1}");
+        if (ratings.length >= 1) {
+          double avg = ratings.reduce((a, b) => a! + b!)! / ratings.length;
+          await doc.reference.update({'avgrating': avg});
+        } else {
+          await doc.reference.update({'avgrating': null});
+        }
+      }
       if (querySnapshot.docs.isEmpty) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
@@ -338,24 +356,6 @@ class _PlaceholdersState extends State<Placeholders> {
       Navigator.of(context).pushReplacement(MaterialPageRoute(
           builder: (context) => MessagesPage(userId: userId)));
     }
-  }
-
-  Widget _buildDefaultAvatar() {
-    return FutureBuilder<String?>(
-      future: fetchUserImagurl(user!.uid),
-      builder: (context, snapshot) {
-        final imageUrl = snapshot.data;
-        return ClipRRect(
-          borderRadius: const BorderRadius.all(Radius.circular(100)),
-          child: imageUrl != null
-              ? Image.network(imageUrl, fit: BoxFit.cover,
-                  errorBuilder: (context, error, stackTrace) {
-                  return Image.asset("lib/img/person1.png", fit: BoxFit.cover);
-                })
-              : Image.asset("lib/img/person1.png", fit: BoxFit.cover),
-        );
-      },
-    );
   }
 
   @override
