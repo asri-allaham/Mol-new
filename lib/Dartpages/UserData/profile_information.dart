@@ -1,5 +1,10 @@
+import 'package:Mollni/Dartpages/Admin/AdminTapsSystem.dart';
+import 'package:Mollni/Dartpages/Communicate%20with%20investor/business%20owners/messages_page.dart';
+import 'package:Mollni/Dartpages/HomePage/Home_page.dart';
 import 'package:Mollni/Dartpages/HomePage/favorites.dart';
+import 'package:Mollni/Dartpages/UserData/Notifications/Notifications.dart';
 import 'package:Mollni/Dartpages/UserData/Settings.dart';
+import 'package:Mollni/Dartpages/projectadd%20post%20Contracts/TapsSystem.dart';
 import 'package:Mollni/Dartpages/sighUpIn/LoginPage.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -17,6 +22,7 @@ class _MyProfile extends State<Profile> {
   Map<String, dynamic>? _userData;
   List<Map<String, dynamic>> projects = [], posts = [];
   bool _isLoading = true;
+  int _selectedIndex = 3;
 
   @override
   void initState() {
@@ -76,21 +82,16 @@ class _MyProfile extends State<Profile> {
 
   @override
   Widget build(BuildContext context) {
+    bool isadmin = false;
+    if (_userData?['admin'] == true) isadmin = true;
     return Scaffold(
       appBar: AppBar(
         backgroundColor: const Color(0xffE4F5ED),
         automaticallyImplyLeading: false,
         toolbarHeight: 30,
         title: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          mainAxisAlignment: MainAxisAlignment.end,
           children: [
-            InkWell(
-              onTap: () => Navigator.pop(context),
-              child: const Icon(
-                Icons.arrow_back_ios_new,
-                color: Color(0xff012113),
-              ),
-            ),
             Row(
               children: [
                 SizedBox(width: 17),
@@ -107,16 +108,14 @@ class _MyProfile extends State<Profile> {
                     ),
                   ],
                 ),
-                Icon(Icons.notifications,
-                    color: const Color.fromARGB(255, 49, 90, 54), size: 30),
                 IconButton(
                   onPressed: () {
                     if (user?.uid == null) {
                       Navigator.of(context).push(
                           MaterialPageRoute(builder: (context) => LoginPage()));
                     } else {
-                      Navigator.of(context).push(MaterialPageRoute(
-                          builder: (context) => ProfileInformation()));
+                      Navigator.of(context).push(
+                          MaterialPageRoute(builder: (context) => settings()));
                     }
                   },
                   icon: Icon(Icons.settings,
@@ -127,134 +126,104 @@ class _MyProfile extends State<Profile> {
           ],
         ),
       ),
-      body: _userData == null
-          ? const Center(child: CircularProgressIndicator())
-          : ListView(
-              physics: const NeverScrollableScrollPhysics(),
-              children: [
-                Stack(
-                  children: [
-                    SizedBox(
-                      width: MediaQuery.of(context).size.width,
-                      height: 260,
-                      child: Image.asset(
-                        "lib/img/profile444.png",
-                        fit: BoxFit.fill,
-                      ),
-                    ),
-                    Column(
-                      children: [
-                        Align(
-                          alignment: Alignment.bottomCenter,
-                          child: Container(
-                            margin: const EdgeInsets.only(bottom: 10),
-                            decoration:
-                                const BoxDecoration(shape: BoxShape.circle),
-                            child: CircleAvatar(
-                              radius: 40,
-                              backgroundImage: _userData!['imageUrl'] != null
-                                  ? NetworkImage(_userData!['imageUrl'])
-                                  : const AssetImage(
-                                          'lib/Images/DefaultProfile.jpg')
-                                      as ImageProvider,
+      body: Column(
+        children: [
+          Expanded(
+            child: _userData == null
+                ? const Center(child: CircularProgressIndicator())
+                : ListView(
+                    physics: const NeverScrollableScrollPhysics(),
+                    children: [
+                      Stack(
+                        children: [
+                          SizedBox(
+                            width: MediaQuery.of(context).size.width,
+                            height: 260,
+                            child: Image.asset(
+                              "lib/img/profile444.png",
+                              fit: BoxFit.fill,
                             ),
                           ),
-                        ),
-                        Text(
-                          _userData?['fullName'] ?? '',
-                          style: const TextStyle(
-                              color: Color(0xff012113), fontSize: 20),
-                        ),
-                        Text(
-                          "@${_userData?['username'] ?? ''}",
-                          style: const TextStyle(
-                              color: Color(0xff012113), fontSize: 14),
-                        ),
-                        const SizedBox(height: 10),
-                        Row(
-                          children: [
-                            const Spacer(),
-                            _buildIcon(Icons.chat),
-                            const Spacer(),
-                            _buildIcon(Icons.more_horiz, size: 32),
-                            const Spacer(),
-                          ],
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-                _buildInfoSection("nick Name", _userData?['username']),
-                _buildInfoSection("full Name", _userData?['fullName']),
-                _buildInfoSection("Email Address", _userData?['email']),
-                _buildInfoSection("Address", _userData?['address']),
-                _buildInfoSection("Phone Number", _userData?['phone']),
-                const SizedBox(height: 40),
-                Row(
-                  children: [
-                    const Text("Business ideas",
-                        style:
-                            TextStyle(color: Color(0xff54826D), fontSize: 17)),
-                    SizedBox(width: MediaQuery.of(context).size.width / 2.3),
-                    const Text("View All",
-                        style:
-                            TextStyle(color: Color(0xff012C19), fontSize: 17)),
-                  ],
-                ),
-                const SizedBox(height: 20),
-                Row(
-                  children: [
-                    const Padding(
-                      padding: EdgeInsets.symmetric(horizontal: 22.0),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Text("Projects",
-                              style: TextStyle(
-                                  color: Color(0xff54826D), fontSize: 17)),
-                          Text("View All",
-                              style: TextStyle(
-                                  color: Color(0xff012C19), fontSize: 17)),
+                          Column(
+                            children: [
+                              Align(
+                                alignment: Alignment.bottomCenter,
+                                child: Container(
+                                  margin: const EdgeInsets.only(bottom: 10),
+                                  decoration: const BoxDecoration(
+                                      shape: BoxShape.circle),
+                                  child: CircleAvatar(
+                                    radius: 40,
+                                    backgroundImage: _userData!['imageUrl'] !=
+                                            null
+                                        ? NetworkImage(_userData!['imageUrl'])
+                                        : const AssetImage(
+                                                'lib/Images/DefaultProfile.jpg')
+                                            as ImageProvider,
+                                  ),
+                                ),
+                              ),
+                              Text(
+                                _userData?['fullName'] ?? '',
+                                style: const TextStyle(
+                                    color: Color(0xff012113), fontSize: 20),
+                              ),
+                              Text(
+                                "@${_userData?['username'] ?? ''}",
+                                style: const TextStyle(
+                                    color: Color(0xff012113), fontSize: 14),
+                              ),
+                            ],
+                          ),
                         ],
                       ),
-                    ),
-                    const SizedBox(height: 20),
-                    SizedBox(
-                      height: 120,
-                      child: projects.isEmpty
-                          ? const Center(child: Text("No projects to display"))
-                          : ListView.separated(
-                              scrollDirection: Axis.horizontal,
-                              padding:
-                                  const EdgeInsets.symmetric(horizontal: 16),
-                              itemCount: projects.length,
-                              separatorBuilder: (_, __) =>
-                                  const SizedBox(width: 15),
-                              itemBuilder: (context, index) {
-                                final project = projects[index];
-                                final imageUrl = project['image_urls']
-                                    [0]; // First image only
-                                return _buildIdeaImageFromUrl(imageUrl);
-                              },
-                            ),
-                    ),
+                      _buildInfoSection("nick Name", _userData?['nickName']),
+                      _buildInfoSection("full Name", _userData?['fullName']),
+                      _buildInfoSection("Email Address", _userData?['email']),
+                      _buildInfoSection("Address", _userData?['address']),
+                      _buildInfoSection("Phone Number", _userData?['phone']),
+                      const SizedBox(height: 40),
+                      const SizedBox(height: 20),
+                    ],
+                  ),
+          ),
+          Positioned(
+            left: 0,
+            right: 0,
+            bottom: 0,
+            child: Container(
+              height: 60,
+              decoration: const BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [
+                    Color(0xff54826D),
+                    Color(0xff03361F),
+                    Color(0xff03361F),
+                    Color(0xff03361F),
+                    Color(0xff03361F)
                   ],
-                )
-              ],
+                ),
+                borderRadius: BorderRadius.only(
+                    topLeft: Radius.circular(20),
+                    topRight: Radius.circular(20)),
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceAround,
+                children: [
+                  _buildNavItem(Icons.home, 0),
+                  if (isadmin) ...[
+                    _buildNavItem(Icons.admin_panel_settings, 1),
+                  ] else
+                    _buildNavItem(Icons.add, 1),
+                  _buildNavItem(Icons.message, 2),
+                  _buildNavItem(Icons.person, 3),
+                ],
+              ),
             ),
-    );
-  }
-
-  Widget _buildIdeaImageFromUrl(String imageUrl) {
-    return Container(
-      width: 106,
-      height: 109,
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(15),
-        image: DecorationImage(
-          image: NetworkImage(imageUrl),
-          fit: BoxFit.cover,
-        ),
+          ),
+        ],
       ),
     );
   }
@@ -301,22 +270,43 @@ class _MyProfile extends State<Profile> {
               ],
             )
           ],
-        )
+        ),
       ],
     );
   }
 
-  Widget _buildIdeaImage(String assetPath) {
-    return Container(
-      width: 106,
-      height: 109,
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(15),
-        image: DecorationImage(
-          image: AssetImage(assetPath),
-          fit: BoxFit.cover,
-        ),
-      ),
+  Widget _buildNavItem(IconData icon, int index) {
+    return GestureDetector(
+      onTap: () {
+        setState(() {
+          _selectedIndex = index;
+        });
+        Widget getPageForIndex(int index) {
+          if (index == 0) {
+            if (user != null) {
+              return Homepage();
+            }
+          } else if (index == 1) {
+            if (user != null && (_userData?['admin'] ?? false)) {
+              return Admintapssystem(projects, posts);
+            }
+            return user != null ? BottomTabs() : const LoginPage();
+          } else if (index == 2) {
+            return user != null ? MessagesPage() : const LoginPage();
+          } else if (index == 3) {
+            return user != null ? Profile() : const LoginPage();
+          }
+          return SizedBox();
+        }
+
+        final page = getPageForIndex(_selectedIndex);
+        if (page is! SizedBox) {
+          Navigator.of(context)
+              .push(MaterialPageRoute(builder: (context) => page));
+        }
+      },
+      child: Icon(icon,
+          color: _selectedIndex == index ? Colors.white : Colors.white70),
     );
   }
 }

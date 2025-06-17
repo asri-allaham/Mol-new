@@ -4,6 +4,7 @@ import 'package:Mollni/Dartpages/Communicate%20with%20investor/business%20owners
 import 'package:Mollni/Dartpages/CustomWidget/SearchBox.dart';
 import 'package:Mollni/Dartpages/HomePage/placeholders.dart';
 import 'package:Mollni/Dartpages/HomePage/viewItems.dart';
+import 'package:Mollni/Dartpages/UserData/Notifications/Notifications.dart';
 import 'package:Mollni/Dartpages/UserData/Settings.dart';
 import 'package:Mollni/Dartpages/UserData/profile_information.dart';
 import 'package:Mollni/Dartpages/projectadd%20post%20Contracts/TapsSystem.dart';
@@ -823,7 +824,21 @@ class _HomepageState extends State<Homepage> {
                 ),
                 Row(
                   children: [
-                    Icon(Icons.notifications, color: Colors.white, size: 30),
+                    IconButton(
+                      icon: Icon(
+                        Icons.notifications,
+                        color: Colors.white,
+                      ),
+                      onPressed: () {
+                        if (user?.uid == null) {
+                          Navigator.of(context).push(MaterialPageRoute(
+                              builder: (context) => LoginPage()));
+                        } else {
+                          Navigator.of(context).push(MaterialPageRoute(
+                              builder: (context) => Notifications()));
+                        }
+                      },
+                    ),
                     IconButton(
                         onPressed: () {
                           if (user?.uid == null) {
@@ -831,7 +846,7 @@ class _HomepageState extends State<Homepage> {
                                 builder: (context) => LoginPage()));
                           } else {
                             Navigator.of(context).push(MaterialPageRoute(
-                                builder: (context) => ProfileInformation()));
+                                builder: (context) => settings()));
                           }
                         },
                         icon:
@@ -905,7 +920,7 @@ class _HomepageState extends State<Homepage> {
           } else if (index == 2) {
             return user != null ? MessagesPage() : const LoginPage();
           } else if (index == 3) {
-            return user != null ? const Profile() : const LoginPage();
+            return user != null ? Profile() : const LoginPage();
           }
           return SizedBox();
         }

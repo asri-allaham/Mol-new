@@ -3,18 +3,14 @@ import 'package:Mollni/Dartpages/projectadd%20post%20Contracts/TapsSystem.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'dart:async';
 import 'package:Mollni/Dartpages/HomePage/Home_page.dart';
-import 'package:Mollni/Dartpages/UserData/Notifications/NotificationService.dart';
 import 'package:Mollni/Dartpages/UserData/profile_information.dart';
 import 'package:Mollni/Dartpages/projectadd%20post%20Contracts/Contracts.dart';
-import 'package:Mollni/Dartpages/projectadd%20post%20Contracts/ProjectAdd.dart';
 import 'package:Mollni/Dartpages/sighUpIn/LoginPage.dart';
 import 'package:Mollni/main.dart';
 import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:flutter_chat_ui/flutter_chat_ui.dart';
-import 'package:provider/provider.dart';
 
 class MessagesPage extends StatefulWidget {
   String? projectID;
@@ -494,6 +490,9 @@ class _MessagesPageState extends State<MessagesPage> {
         final userData = userDoc.data() as Map<String, dynamic>;
         otherUserEmail = userData['email'];
         otherUserName = userData['username'];
+        setState(() {
+          _currentOtherUserID = userDoc.id;
+        });
       } else if (userEmail != null && username != null) {
         otherUserEmail = userEmail;
         otherUserName = username;
@@ -558,46 +557,48 @@ class _MessagesPageState extends State<MessagesPage> {
     }
   }
 
-  void _showAttachmentOptions(BuildContext context) {
-    showModalBottomSheet(
-      context: context,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
-      builder: (context) {
-        return Padding(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              _buildAttachmentOption(Icons.camera_alt, "Camera", context),
-              _buildAttachmentOption(
-                  Icons.insert_drive_file, "Documents", context),
-              _buildAttachmentOption(Icons.poll, "Create a poll", context),
-              _buildAttachmentOption(Icons.image, "Media", context),
-              _buildAttachmentOption(Icons.contacts, "Contact", context),
-              _buildAttachmentOption(Icons.location_on, "Location", context),
-            ],
-          ),
-        );
-      },
-    );
-  }
+  // void _showAttachmentOptions(BuildContext context) {
+  //   showModalBottomSheet(
+  //     context: context,
+  //     shape: const RoundedRectangleBorder(
+  //       borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+  //     ),
+  //     builder: (context) {
+  //       return Padding(
+  //         padding: const EdgeInsets.all(16),
+  //         child: Column(
+  //           mainAxisSize: MainAxisSize.min,
+  //           children: [
+  //             _buildAttachmentOption(Icons.camera_alt, "Camera", context),
+  //             _buildAttachmentOption(
+  //                 Icons.insert_drive_file, "Documents", context),
+  //             _buildAttachmentOption(Icons.poll, "Create a poll", context),
+  //             _buildAttachmentOption(Icons.image, "Media", context),
+  //             _buildAttachmentOption(Icons.contacts, "Contact", context),
+  //             _buildAttachmentOption(Icons.location_on, "Location", context),
+  //           ],
+  //         ),
+  //       );
+  //     },
+  //   );
+  // }
 
-  Widget _buildAttachmentOption(
-      IconData icon, String title, BuildContext context) {
-    return ListTile(
-      leading: Icon(icon, color: Colors.green),
-      title: Text(title),
-      onTap: () => Navigator.pop(context),
-    );
-  }
+  // Widget _buildAttachmentOption(
+  //     IconData icon, String title, BuildContext context) {
+  //   return ListTile(
+  //     leading: Icon(icon, color: Colors.green),
+  //     title: Text(title),
+  //     onTap: () => Navigator.pop(context),
+  //   );
+  // }
 
   @override
   Widget build(BuildContext context) {
-    final imageUrl = fetchUserImagurl(user!.uid);
-
     if (_showChatPage) {
+      print("befor:$_currentOtherUserID");
+      final imageUrl = fetchUserImagurl(_currentOtherUserID);
+      print("after:$_currentOtherUserID");
+
       return Scaffold(
         backgroundColor: const Color(0xffEBF5F0),
         appBar: AppBar(
@@ -646,14 +647,18 @@ class _MessagesPageState extends State<MessagesPage> {
                   SizedBox(
                     width: 5,
                   ),
-                  Text(
-                    _currentOtherUserName,
-                    style: TextStyle(
-                      color: Color.fromARGB(255, 85, 147, 104),
-                      fontSize: 15,
-                      fontWeight: FontWeight.w600,
-                      letterSpacing: 0.5,
-                    ),
+                  Row(
+                    children: [
+                      Text(
+                        _currentOtherUserName,
+                        style: TextStyle(
+                          color: const Color.fromARGB(255, 36, 69, 39),
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                          letterSpacing: 0.5,
+                        ),
+                      ),
+                    ],
                   ),
                 ],
               ),
@@ -1087,18 +1092,16 @@ class _MessagesPageState extends State<MessagesPage> {
                                       }
                                       if (messageText == "") {
                                         return SizedBox();
-                                      } else {
-                                        return _buildMessageItem(
-                                          name: userData['username'],
-                                          message: messageText,
-                                          time: timeText,
-                                          userEmail: userData['email'],
-                                          isUnread: false,
-                                          isOnline:
-                                              userData['isOnline'] ?? false,
-                                          showTime: true,
-                                        );
                                       }
+                                      return _buildMessageItem(
+                                        name: userData['username'],
+                                        message: messageText,
+                                        time: timeText,
+                                        userEmail: userData['email'],
+                                        isUnread: false,
+                                        isOnline: userData['isOnline'] ?? false,
+                                        showTime: true,
+                                      );
                                     },
                                   ),
                                 ),
@@ -1153,10 +1156,10 @@ class _MessagesPageState extends State<MessagesPage> {
       child: SafeArea(
         child: Row(
           children: [
-            GestureDetector(
-              onTap: () => _showAttachmentOptions(context),
-              child: Icon(Icons.attach_file, color: Colors.grey),
-            ),
+            // GestureDetector(
+            //   onTap: () => _showAttachmentOptions(context),
+            //   child: Icon(Icons.attach_file, color: Colors.grey),
+            // ),
             const SizedBox(width: 8),
             Expanded(
               child: TextField(

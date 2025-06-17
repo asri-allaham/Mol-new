@@ -17,10 +17,10 @@ class LoginPage extends StatefulWidget {
 }
 
 class _LoginPageState extends State<LoginPage> {
+  final _formKey = GlobalKey<FormState>();
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
   bool _isPasswordVisible = false;
-  bool _isChecked = false;
   bool _isLoading = false;
 
   @override
@@ -31,13 +31,9 @@ class _LoginPageState extends State<LoginPage> {
   }
 
   Future<void> _login() async {
-    if (_emailController.text.isEmpty || _passwordController.text.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please fill in all fields')),
-      );
-      return;
-    }
+    if (!_formKey.currentState!.validate()) return;
     setState(() => _isLoading = true);
+
     try {
       UserCredential userCredential =
           await FirebaseAuth.instance.signInWithEmailAndPassword(
@@ -72,12 +68,16 @@ class _LoginPageState extends State<LoginPage> {
       print("FirebaseAuthException: ${e.code} - ${e.message}");
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("$errorMessage $e")),
+          SnackBar(content: Text(errorMessage)),
         );
       }
     } catch (e) {
       print("Unknown error: $e");
-      SnackBar(content: Text("$e"));
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("An unexpected error occurred")),
+        );
+      }
     } finally {
       if (mounted) {
         setState(() => _isLoading = false);
@@ -139,80 +139,101 @@ class _LoginPageState extends State<LoginPage> {
         ),
         child: SingleChildScrollView(
           padding: const EdgeInsets.symmetric(horizontal: 20),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const SizedBox(height: 5),
-              _buildSectionTitle("WELCOME BACK", fontSize: 17),
-              _buildSectionTitle("Log In Your Account",
-                  fontSize: 30, isBold: true),
-              const SizedBox(height: 35),
-              _buildInputLabel("Your Email"),
-              _buildTextField(
-                controller: _emailController,
-                hintText: "name@gmail.com",
-                hintColor: Color(0xff90AC9F),
-              ),
-              const SizedBox(height: 15),
-              _buildInputLabel("Password"),
-              _buildTextField(
-                controller: _passwordController,
-                hintText: "**********",
-                hintColor: Color(0xff54826D),
-                obscureText: !_isPasswordVisible,
-                suffixIcon: IconButton(
-                  icon: Icon(
-                    _isPasswordVisible
-                        ? Icons.visibility
-                        : Icons.visibility_off,
-                    color: const Color(0xff54826D),
-                  ),
-                  onPressed: () {
-                    setState(() {
-                      _isPasswordVisible = !_isPasswordVisible;
-                    });
+          child: Form(
+            key: _formKey,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const SizedBox(height: 5),
+                _buildSectionTitle("WELCOME BACK", fontSize: 17),
+                _buildSectionTitle("Log In Your Account",
+                    fontSize: 30, isBold: true),
+                const SizedBox(height: 35),
+                _buildInputLabel("Your Email"),
+                _buildTextFormField(
+                  controller: _emailController,
+                  hintText: "name@gmail.com",
+                  hintColor: Color(0xff90AC9F),
+                  validator: (value) {
+                    if (value == null || value.isEmpty) {
+                      return "Please enter an email";
+                    }
+                    if (!RegExp(r'^[^@]+@[^@]+\.[^@]+').hasMatch(value)) {
+                      return "Please enter a valid email";
+                    }
+                    return null;
                   },
                 ),
-              ),
-              const SizedBox(height: 10),
-              Row(
-                children: [
-                  const Spacer(),
-                  GestureDetector(
-                    onTap: () {
-                      Navigator.of(context).pushReplacement(MaterialPageRoute(
-                          builder: (context) => ForgotPassword()));
+                const SizedBox(height: 15),
+                _buildInputLabel("Password"),
+                _buildTextFormField(
+                  controller: _passwordController,
+                  hintText: "",
+                  hintColor: Color(0xff54826D),
+                  obscureText: !_isPasswordVisible,
+                  suffixIcon: IconButton(
+                    icon: Icon(
+                      _isPasswordVisible
+                          ? Icons.visibility
+                          : Icons.visibility_off,
+                      color: const Color(0xff54826D),
+                    ),
+                    onPressed: () {
+                      setState(() {
+                        _isPasswordVisible = !_isPasswordVisible;
+                      });
                     },
-                    child: const Text(
-                      "Forgot Password?",
-                      style: TextStyle(
-                        fontSize: 15,
-                        color: Color(0xff012113),
+                  ),
+                  validator: (value) {
+                    if (value == null || value.isEmpty) {
+                      return "Please enter a password";
+                    }
+                    if (value.length < 6) {
+                      return "Password must be at least 6 characters";
+                    }
+                    return null;
+                  },
+                ),
+                const SizedBox(height: 10),
+                Row(
+                  children: [
+                    const Spacer(),
+                    GestureDetector(
+                      onTap: () {
+                        Navigator.of(context).pushReplacement(MaterialPageRoute(
+                            builder: (context) => ForgotPassword()));
+                      },
+                      child: const Text(
+                        "Forgot Password?",
+                        style: TextStyle(
+                          fontSize: 15,
+                          color: Color(0xff012113),
+                        ),
                       ),
                     ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 18),
-              _buildRadioButton("Business owner"),
-              _buildRadioButton("Investor"),
-              const SizedBox(height: 25),
-              GradientButton(
-                text: "CONTINUE",
-                width: 350,
-                fontSize: 15,
-                onTap: () {
-                  _login();
-                },
-              ),
-              const SizedBox(height: 30),
-              _buildOrDivider(),
-              const SizedBox(height: 40),
-              _buildGoogleLoginButton(),
-              const SizedBox(height: 40),
-              _buildSignUpSection(),
-              const SizedBox(height: 100),
-            ],
+                  ],
+                ),
+                const SizedBox(height: 18),
+                _buildRadioButton("Business owner"),
+                _buildRadioButton("Investor"),
+                const SizedBox(height: 25),
+                GradientButton(
+                  text: "CONTINUE",
+                  width: 350,
+                  fontSize: 15,
+                  onTap: () {
+                    _login();
+                  },
+                ),
+                const SizedBox(height: 30),
+                _buildOrDivider(),
+                const SizedBox(height: 40),
+                _buildGoogleLoginButton(),
+                const SizedBox(height: 40),
+                _buildSignUpSection(),
+                const SizedBox(height: 100),
+              ],
+            ),
           ),
         ),
       ),
@@ -241,16 +262,17 @@ class _LoginPageState extends State<LoginPage> {
     );
   }
 
-  Widget _buildTextField({
+  Widget _buildTextFormField({
     TextEditingController? controller,
     String? hintText,
     Color? hintColor,
     bool obscureText = false,
     Widget? suffixIcon,
+    String? Function(String?)? validator,
   }) {
     return SizedBox(
       width: 350,
-      child: TextField(
+      child: TextFormField(
         controller: controller,
         obscureText: obscureText,
         decoration: InputDecoration(
@@ -258,22 +280,37 @@ class _LoginPageState extends State<LoginPage> {
           hintStyle: TextStyle(color: hintColor),
           filled: true,
           fillColor: const Color(0xffECECEC),
-          border: OutlineInputBorder(
+          enabledBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(15),
             borderSide: const BorderSide(
-              color: Color(0xff012113),
-              width: 1.5,
+              color: Color(0xff54826D),
+              width: 1.0,
             ),
           ),
           focusedBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(15),
             borderSide: const BorderSide(
-              color: Color(0xff012113),
+              color: Color(0xff112E21),
+              width: 2.0,
+            ),
+          ),
+          errorBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(15),
+            borderSide: const BorderSide(
+              color: Colors.red,
+              width: 1.5,
+            ),
+          ),
+          focusedErrorBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(15),
+            borderSide: const BorderSide(
+              color: Colors.red,
               width: 1.5,
             ),
           ),
           suffixIcon: suffixIcon,
         ),
+        validator: validator,
       ),
     );
   }

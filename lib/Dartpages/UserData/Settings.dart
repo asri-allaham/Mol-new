@@ -18,14 +18,14 @@ import '../../simple_functions/Language.dart';
 import 'Notifications/Notifications.dart';
 import 'profile info display/UIDisplay.dart';
 
-class ProfileInformation extends StatefulWidget {
-  const ProfileInformation({super.key});
+class settings extends StatefulWidget {
+  const settings({super.key});
 
   @override
-  State<ProfileInformation> createState() => _ProfileInformationState();
+  State<settings> createState() => _settingsState();
 }
 
-class _ProfileInformationState extends State<ProfileInformation> {
+class _settingsState extends State<settings> {
   Map<String, dynamic>? _userData;
   bool _loading = true;
   bool isDarkMode = false;
@@ -182,40 +182,6 @@ class _ProfileInformationState extends State<ProfileInformation> {
                 _buildSettingsSection(context, appLang),
               ],
             ),
-      bottomNavigationBar: Positioned(
-        left: 0,
-        right: 0,
-        bottom: 0,
-        child: Container(
-          height: 60,
-          decoration: const BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topCenter,
-              end: Alignment.bottomCenter,
-              colors: [
-                Color(0xff54826D),
-                Color(0xff03361F),
-                Color(0xff03361F),
-                Color(0xff03361F),
-                Color(0xff03361F),
-              ],
-            ),
-            borderRadius: BorderRadius.only(
-              topLeft: Radius.circular(20),
-              topRight: Radius.circular(20),
-            ),
-          ),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceAround,
-            children: [
-              _buildNavItem(Icons.home, 0),
-              _buildNavItem(Icons.add, 1),
-              _buildNavItem(Icons.message, 2),
-              _buildNavItem(Icons.person, 3),
-            ],
-          ),
-        ),
-      ),
     );
   }
 
@@ -340,39 +306,6 @@ class _ProfileInformationState extends State<ProfileInformation> {
               )),
         ],
       ),
-    );
-  }
-
-  Widget _buildNavItem(IconData icon, int index) {
-    return GestureDetector(
-      onTap: () {
-        setState(() {
-          _selectedIndex = index;
-        });
-        if (_selectedIndex == 0) {
-          if (user != null) {
-            Navigator.of(context).push(
-                MaterialPageRoute(builder: (context) => const Homepage()));
-          }
-        } else if (_selectedIndex == 1) {
-          if (user != null) {
-            Navigator.of(context).push(
-                MaterialPageRoute(builder: (context) => const ProjectAdd()));
-          } else {
-            Navigator.of(context).push(
-                MaterialPageRoute(builder: (context) => const LoginPage()));
-          }
-        } else if (_selectedIndex == 2) {
-          if (user != null) {
-            Navigator.of(context).push(MaterialPageRoute(
-                builder: (context) => MessagesPage(userId: null)));
-          } else {
-            Navigator.of(context).push(
-                MaterialPageRoute(builder: (context) => const LoginPage()));
-          }
-        }
-      },
-      child: Icon(icon, color: Colors.white),
     );
   }
 }

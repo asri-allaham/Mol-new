@@ -219,8 +219,8 @@ class _PlaceholdersState extends State<Placeholders> {
     final TextEditingController commentController = TextEditingController();
     final currentUserId = FirebaseAuth.instance.currentUser?.uid;
     if (currentUserId == null) {
-      Navigator.of(context)
-          .push(MaterialPageRoute(builder: (context) => const LoginPage()));
+      Navigator.of(context).pushReplacement(
+          MaterialPageRoute(builder: (context) => const LoginPage()));
     }
     try {
       final querySnapshot = await FirebaseFirestore.instance
@@ -335,7 +335,7 @@ class _PlaceholdersState extends State<Placeholders> {
   void _chatWithUser() {
     final userId = widget.projectList['user_id'];
     if (userId != null) {
-      Navigator.of(context).push(MaterialPageRoute(
+      Navigator.of(context).pushReplacement(MaterialPageRoute(
           builder: (context) => MessagesPage(userId: userId)));
     }
   }
@@ -477,13 +477,13 @@ class _PlaceholdersState extends State<Placeholders> {
                                   },
                                   icon: Icon(
                                       isFavorited == true
-                                          ? Icons.favorite_border
-                                          : Icons.favorite,
+                                          ? Icons.favorite
+                                          : Icons.favorite_border,
                                       color: isFavorited == true
-                                          ? Colors.grey
-                                          : Colors.red),
+                                          ? Colors.red
+                                          : Colors.grey),
                                   label: Text(
-                                      isFavorited == true ? "Add" : "Remove",
+                                      isFavorited == true ? "Remove" : "Add",
                                       style: const TextStyle(
                                           color: Color(0xff1A3C34),
                                           fontWeight: FontWeight.bold)),
@@ -1282,8 +1282,8 @@ class _PlaceholdersState extends State<Placeholders> {
       await docRef.update({'removed': true});
 
       await docRef.update({'removed': true});
-      Navigator.of(context)
-          .push(MaterialPageRoute(builder: (context) => const Homepage()));
+      Navigator.of(context).pushReplacement(
+          MaterialPageRoute(builder: (context) => const Homepage()));
     } catch (e) {
       print('Error deleting project: $e');
     }
