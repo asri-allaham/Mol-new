@@ -238,6 +238,7 @@ class _ImageUploaderPageState extends State<ProjectAdd> {
       'name': _projectNameController.text.trim(),
       'investment_amount':
           double.tryParse(_investmentAmountController.text.trim()) ?? 0,
+      'investment': 0,
       'description': _projectDescriptionController.text.trim(),
       'category': _selectedCategory ?? 'Uncategorized',
       'image_urls': imageUrls,

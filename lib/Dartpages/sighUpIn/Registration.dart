@@ -22,6 +22,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
   final TextEditingController _confirmPasswordController =
       TextEditingController();
   final TextEditingController _usernameController = TextEditingController();
+  final TextEditingController _fullNameController = TextEditingController();
+
   bool _isLoading = false;
   File? _selectedImage;
   final ImagePicker _picker = ImagePicker();
@@ -96,6 +98,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
   Future<void> _saveUserDataToFirestore(String uid, String? imageUrl) async {
     await FirebaseFirestore.instance.collection('users').doc(uid).set({
       'username': _usernameController.text.trim(),
+      'fullName': _fullNameController.text.trim(),
+      'uid': uid,
       'email': _emailController.text.trim(),
       'createdAt': FieldValue.serverTimestamp(),
       'admin': false,
@@ -185,6 +189,41 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   validator: (value) {
                     if (value == null || value.isEmpty) {
                       return "Please enter a username";
+                    }
+                    return null;
+                  },
+                ),
+                const SizedBox(height: 16),
+                TextFormField(
+                  controller: _fullNameController,
+                  enabled: !_isLoading,
+                  decoration: const InputDecoration(
+                    labelText: "full Name",
+                    labelStyle: TextStyle(color: Color(0xff54826D)),
+                    enabledBorder: OutlineInputBorder(
+                      borderSide: BorderSide(
+                        color: Color(0xff54826D),
+                        width: 1.0,
+                      ),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderSide: BorderSide(
+                        color: Color(0xff112E21),
+                        width: 2.0,
+                      ),
+                    ),
+                    border: OutlineInputBorder(),
+                  ),
+                  keyboardType: TextInputType.name,
+                  validator: (value) {
+                    if (value == null || value.isEmpty) {
+                      return "Please enter a full name";
+                    }
+                    if (value.length < 3) {
+                      return "Full name must be at least 3 characters";
+                    }
+                    if (value.length > 50) {
+                      return "Full name must be less than 50 characters";
                     }
                     return null;
                   },

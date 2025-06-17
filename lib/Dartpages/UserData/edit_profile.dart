@@ -5,7 +5,6 @@ import '../simple_functions/botton.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'dart:io';
-import 'package:cloud_firestore/cloud_firestore.dart';
 
 class EdidProfile extends StatefulWidget {
   const EdidProfile({super.key});
@@ -22,8 +21,8 @@ class _EdidProfileState extends State<EdidProfile> {
   File? _imageFile;
   final List<String> _jordanGovernorates = [
     'Amman',
-    'Irbid',
     'Zarqa',
+    'Irbid',
     'Balqa',
     'Madaba',
     'Karak',
@@ -61,12 +60,11 @@ class _EdidProfileState extends State<EdidProfile> {
   }
 
   final TextEditingController _fullNameController = TextEditingController();
-  final TextEditingController _nickNameController = TextEditingController();
+  final TextEditingController _usernameController = TextEditingController();
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _phoneController = TextEditingController();
   final TextEditingController _addressController = TextEditingController();
   Map<String, dynamic>? _userData;
-  // ...inside your EditProfilePage class...
 
   Future<void> _pickAndUploadProfileImage() async {
     final picker = ImagePicker();
@@ -99,7 +97,7 @@ class _EdidProfileState extends State<EdidProfile> {
   @override
   void dispose() {
     _fullNameController.dispose();
-    _nickNameController.dispose();
+    _usernameController.dispose();
     _emailController.dispose();
     _phoneController.dispose();
     _addressController.dispose();
@@ -115,7 +113,7 @@ class _EdidProfileState extends State<EdidProfile> {
         setState(() {
           _userData = doc.data();
           _fullNameController.text = _userData!['fullName'] ?? '';
-          _nickNameController.text = _userData!['nickName'] ?? '';
+          _usernameController.text = _userData!['username'] ?? '';
           _emailController.text = _userData!['email'] ?? '';
           _phoneController.text = _userData!['phone'] ?? '';
           _addressController.text = _userData!['address'] ?? '';
@@ -252,7 +250,6 @@ class _EdidProfileState extends State<EdidProfile> {
                   ),
                 ),
               ),
-
               Container(
                 width: double.infinity,
                 height: 50,
@@ -262,7 +259,7 @@ class _EdidProfileState extends State<EdidProfile> {
                   padding: const EdgeInsets.only(
                       left: 15, right: 15, top: 5, bottom: 5),
                   child: TextField(
-                    controller: _nickNameController,
+                    controller: _usernameController,
                     style: textFieldStyle,
                     decoration: InputDecoration(
                       hintText: 'Asri',
@@ -276,8 +273,6 @@ class _EdidProfileState extends State<EdidProfile> {
                   ),
                 ),
               ),
-
-              // Email Field
               Container(
                 width: double.infinity,
                 height: 50,
@@ -301,8 +296,6 @@ class _EdidProfileState extends State<EdidProfile> {
                   ),
                 ),
               ),
-
-              // Phone Number Field
               Container(
                 width: double.infinity,
                 height: 50,
@@ -341,11 +334,8 @@ class _EdidProfileState extends State<EdidProfile> {
                   ),
                 ),
               ),
-
-              // Country and Gender Row
               Row(
                 children: [
-                  // Country Dropdown - Working Version
                   Expanded(
                     child: Container(
                       height: 50,
@@ -369,18 +359,31 @@ class _EdidProfileState extends State<EdidProfile> {
                               ),
                             ),
                           ),
+                          fixedSize: MaterialStateProperty.all(Size.fromHeight(
+                              200)), // Fixed height for scrolling
                         ),
-                        menuChildren: _jordanGovernorates.map((String value) {
-                          return MenuItemButton(
-                            onPressed: () {
-                              setState(() {
-                                _selectedCountry = value;
-                                _countryMenuController.close();
-                              });
-                            },
-                            child: Text(value, style: textFieldStyle),
-                          );
-                        }).toList(),
+                        menuChildren: [
+                          ConstrainedBox(
+                            constraints: BoxConstraints(maxHeight: 200),
+                            child: SingleChildScrollView(
+                              child: Column(
+                                mainAxisSize: MainAxisSize.min,
+                                children:
+                                    _jordanGovernorates.map((String value) {
+                                  return MenuItemButton(
+                                    onPressed: () {
+                                      setState(() {
+                                        _selectedCountry = value;
+                                        _countryMenuController.close();
+                                      });
+                                    },
+                                    child: Text(value, style: textFieldStyle),
+                                  );
+                                }).toList(),
+                              ),
+                            ),
+                          ),
+                        ],
                         builder: (BuildContext context,
                             MenuController controller, Widget? child) {
                           return InkWell(
@@ -408,8 +411,6 @@ class _EdidProfileState extends State<EdidProfile> {
                       ),
                     ),
                   ),
-
-                  // Gender Dropdown - Working Version
                   Expanded(
                     child: Container(
                       height: 50,
@@ -474,8 +475,6 @@ class _EdidProfileState extends State<EdidProfile> {
                   ),
                 ],
               ),
-
-              // Address Field
               Container(
                 width: double.infinity,
                 height: 50,
@@ -499,15 +498,14 @@ class _EdidProfileState extends State<EdidProfile> {
                   ),
                 ),
               ),
-
               InkWell(
                 onTap: _pickAndUploadProfileImage,
                 child: CircleAvatar(
                   radius: 50,
-                  backgroundImage: _userData?['profileImage'] != null
-                      ? NetworkImage(_userData!['profileImage'])
+                  backgroundImage: _userData?['imageUrl'] != null
+                      ? NetworkImage(_userData!['imageUrl'])
                       : null,
-                  child: _userData?['profileImage'] == null
+                  child: _userData?['imageUrl'] == null
                       ? Icon(Icons.person, size: 50)
                       : null,
                 ),
@@ -530,7 +528,7 @@ class _EdidProfileState extends State<EdidProfile> {
 
                     final updatedData = {
                       'fullName': _fullNameController.text.trim(),
-                      'nickName': _nickNameController.text.trim(),
+                      'username': _usernameController.text.trim(),
                       'email': _emailController.text.trim(),
                       'phone': _phoneController.text.trim(),
                       'address': _addressController.text.trim(),

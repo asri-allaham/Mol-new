@@ -159,7 +159,7 @@ class _HomepageState extends State<Homepage> {
         if (nameCmp != 0) return nameCmp;
         int descCmp = a['description'].compareTo(b['description']);
         if (descCmp != 0) return descCmp;
-        return a['investment_amount'].compareTo(b['investment_amount']);
+        return a['investment'].compareTo(b['investment']);
       });
 
       setState(() {
@@ -214,7 +214,7 @@ class _HomepageState extends State<Homepage> {
         if (nameCmp != 0) return nameCmp;
         int descCmp = a['description'].compareTo(b['description']);
         if (descCmp != 0) return descCmp;
-        return a['investment_amount'].compareTo(b['investment_amount']);
+        return a['investment'].compareTo(b['investment']);
       });
 
       setState(() {
@@ -268,8 +268,8 @@ class _HomepageState extends State<Homepage> {
     });
     List<Map<String, dynamic>> highestInvestmentProjects =
         List<Map<String, dynamic>>.from(projects);
-    highestInvestmentProjects.sort((a, b) =>
-        (b['investment_amount'] ?? 0).compareTo(a['investment_amount'] ?? 0));
+    highestInvestmentProjects
+        .sort((a, b) => (b['investment'] ?? 0).compareTo(a['investment'] ?? 0));
 
     return Scaffold(
       resizeToAvoidBottomInset: false,
@@ -761,7 +761,7 @@ class _HomepageState extends State<Homepage> {
                 ),
                 SizedBox(height: 5),
                 Text(
-                  "Investment: \$${projects[currentIndex]['investment_amount'] ?? 'N/A'}",
+                  "Investment: \$${projects[currentIndex]['investment'] ?? 'N/A'}",
                   style: TextStyle(fontSize: 14, color: Color(0xff54826D)),
                 ),
               ],
