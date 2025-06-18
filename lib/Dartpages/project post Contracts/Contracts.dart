@@ -1,5 +1,6 @@
 import 'package:Mollni/Dartpages/Communicate%20with%20investor/business%20owners/messages_page.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:easy_localization/easy_localization.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -344,6 +345,10 @@ class _ContractsState extends State<Contracts> {
                   const SizedBox(height: 8),
                   TextField(
                     controller: amountController,
+                    keyboardType: TextInputType.number,
+                    inputFormatters: <TextInputFormatter>[
+                      FilteringTextInputFormatter.digitsOnly
+                    ],
                     maxLines: 1,
                     decoration: InputDecoration(
                       hintText: "Enter amount",
@@ -431,6 +436,9 @@ class _ContractsState extends State<Contracts> {
                                 throw Exception("User not logged in");
 
                               final contractData = {
+                                'amount': double.tryParse(
+                                        amountController.text.trim()) ??
+                                    0,
                                 'Information about us':
                                     widget.Information_about_us,
                                 'Information about Project': project,
@@ -443,7 +451,6 @@ class _ContractsState extends State<Contracts> {
                                   'percentage': percentageController.text,
                                   'payment_method':
                                       paymentMethodController.text,
-                                  'amount': amountController.text,
                                   'owner_commitment':
                                       ownerCommitmentController.text,
                                   'investor_commitment':

@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'package:Mollni/Dartpages/HomePage/Home_page.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -414,6 +415,9 @@ class _ImageUploaderPageState extends State<ProjectEdit> {
                       TextFormField(
                         controller: _investmentAmountController,
                         keyboardType: TextInputType.number,
+                        inputFormatters: <TextInputFormatter>[
+                          FilteringTextInputFormatter.digitsOnly
+                        ],
                         decoration: InputDecoration(
                           filled: true,
                           fillColor: Colors.grey[100],

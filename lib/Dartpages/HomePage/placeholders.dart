@@ -547,7 +547,8 @@ class _PlaceholdersState extends State<Placeholders> {
                               ),
                             ),
                           ),
-                          if (_userData!['admin'] == true)
+                          if (_userData!['admin'] == true ||
+                              user!.uid == widget.projectList['user_id'])
                             Padding(
                               padding: const EdgeInsets.only(left: 100),
                               child: SizedBox(

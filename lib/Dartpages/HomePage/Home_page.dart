@@ -836,7 +836,7 @@ class _HomepageState extends State<Homepage> {
                                 style: TextStyle(
                                     fontSize: 16, color: Colors.white)),
                           )
-                        : Text("Mollni ${user?.displayName ?? ''}",
+                        : Text("Mollni",
                             style: TextStyle(
                                 fontSize: 20,
                                 color: Color(0xff89AE4B),

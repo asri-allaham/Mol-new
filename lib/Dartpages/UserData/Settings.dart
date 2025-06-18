@@ -244,7 +244,7 @@ class _settingsState extends State<settings> {
               label: "Contact us",
               onTap: () async {
                 final Uri uri =
-                    Uri.parse("https://www.facebook.com/omar.abu.sirhan");
+                    Uri.parse("https://www.linkedin.com/in/asrilaham/");
 
                 if (!await launchUrl(uri,
                     mode: LaunchMode.externalApplication)) {

@@ -261,7 +261,6 @@ class _MessagesPageState extends State<MessagesPage> {
     try {
       final String? projectId = widget.projectID;
       if (projectId == null) {
-        print('Project ID not available');
         return false;
       }
 
@@ -410,9 +409,15 @@ class _MessagesPageState extends State<MessagesPage> {
   }
 
   Future<String> getUsername() async {
+    _currentOtherUserID =
+        await getUserIdByEmail(_currentOtherUserEmail) as String;
+
+    if (_currentOtherUserID.isEmpty) {
+      return 'User';
+    }
     final userDoc = await FirebaseFirestore.instance
         .collection('users')
-        .doc(_currentUser.uid)
+        .doc(_currentOtherUserID)
         .get();
 
     final userData = userDoc.data();
@@ -595,9 +600,7 @@ class _MessagesPageState extends State<MessagesPage> {
   @override
   Widget build(BuildContext context) {
     if (_showChatPage) {
-      print("befor:$_currentOtherUserID");
       final imageUrl = fetchUserImagurl(_currentOtherUserID);
-      print("after:$_currentOtherUserID");
 
       return Scaffold(
         backgroundColor: const Color(0xffEBF5F0),
@@ -722,7 +725,7 @@ class _MessagesPageState extends State<MessagesPage> {
                     .snapshots(),
                 builder: (context, snapshot) {
                   if (!snapshot.hasData) {
-                    return const Center(child: CircularProgressIndicator());
+                    return SizedBox.shrink();
                   }
 
                   final messages = snapshot.data!.docs;
@@ -759,21 +762,24 @@ class _MessagesPageState extends State<MessagesPage> {
                                 builder: (context, snapshot) {
                                   if (snapshot.connectionState ==
                                       ConnectionState.waiting) {
-                                    return const CircularProgressIndicator(
-                                        color: Colors.white);
+                                    return SizedBox.square();
                                   }
 
                                   if (snapshot.hasError) {
                                     return const Text('Error');
                                   }
 
-                                  final username = snapshot.data ?? 'User';
-                                  return Text(username,
-                                      style: TextStyle(
-                                          color: isMe
-                                              ? Colors.white
-                                              : const Color(0xff03361F),
-                                          fontSize: 10));
+                                  if (!isMe) {
+                                    final username = snapshot.data ?? 'User';
+                                    return Text(username,
+                                        style: TextStyle(
+                                            color: isMe
+                                                ? Colors.white
+                                                : const Color(0xff03361F),
+                                            fontSize: 10));
+                                  } else {
+                                    return const SizedBox.shrink();
+                                  }
                                 },
                               ),
                               const SizedBox(height: 4),
@@ -805,8 +811,6 @@ class _MessagesPageState extends State<MessagesPage> {
                                       final isOwner = snapshot.data ?? false;
                                       final isSender = msg['senderEmail'] ==
                                           _currentUser.email;
-                                      print(
-                                          "isOwner:$isOwner iissender $isSender");
 
                                       if (isOwner || isSender) {
                                         return Container();
@@ -1434,10 +1438,8 @@ class _MessagesPageState extends State<MessagesPage> {
         final String contractText =
             data['formatContractText'] ?? 'No contract text';
 
-        // ✅ Mark as sent
         await doc.reference.update({'sended?': true});
 
-        // ✉️ Send contract message to chat
         await FirebaseFirestore.instance
             .collection('chats')
             .doc(_currentChatId)
@@ -1503,34 +1505,75 @@ class _MessagesPageState extends State<MessagesPage> {
         FirebaseFirestore.instance.collection('Contracts').doc(docId);
 
     try {
+      print('Accepting contract with ID: $docId');
       final contractSnapshot = await contractDocRef.get();
-
-      if (!contractSnapshot.exists) {
+      final otherid = contractSnapshot['Curnt accepted sides']?[1] ?? 'Not yet';
+      print('otherid: $otherid');
+      if (!contractSnapshot.exists || otherid != 'Not yet') {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('❌ Contract not found')),
+          const SnackBar(content: Text('❌ you  Accepted his contract')),
         );
         return;
       }
 
       final contractData = contractSnapshot.data()!;
-      final effectiveProjectId = contractData['projectId'];
+      print('Contract Data: $contractData');
 
-      if (effectiveProjectId == null) {
+      final int? projectnumber =
+          contractData['Information about Project']?[0]['projectNumber'];
+      final projectDocRef = await FirebaseFirestore.instance
+          .collection('projects')
+          .where('projectNumber', isEqualTo: projectnumber)
+          .get();
+
+      final projectId =
+          projectDocRef.docs.isNotEmpty ? projectDocRef.docs.first.id : null;
+      final int investment = contractData['amount'] ?? 0;
+      print('Investment Amount: $investment');
+      print('Project Number: $projectnumber');
+
+      if (projectId == null) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('❌ Project ID not found in contract')),
         );
         return;
       }
 
+      print('Effective Project ID: $projectId');
+      print('Investment Amount: $investment');
+
+      await FirebaseFirestore.instance
+          .collection('projects')
+          .doc(projectId)
+          .update({
+        'investment': FieldValue.increment(investment),
+      });
+
+      final otherUser = _currentOtherUserID ?? 'unknownUser';
+
       await contractDocRef.update({
         'adminAcceptance': true,
-        'Curnt accepted sides': [user.uid, _currentOtherUserID]
+        'Curnt accepted sides': [user.uid, otherUser],
+      });
+
+      await FirebaseFirestore.instance
+          .collection('chats')
+          .doc(_currentChatId)
+          .collection('messages')
+          .add({
+        'senderId': user.uid,
+        'senderEmail': user.email,
+        'text': "✅ Contract accepted successfully",
+        'timestamp': FieldValue.serverTimestamp(),
+        'type': 'system',
       });
 
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('✅ Contract accepted successfully')),
+        const SnackBar(
+            content: Text('✅ Contract accepted and project updated')),
       );
     } catch (e) {
+      print('❌ Exception: $e');
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('❌ Error accepting contract: $e')),
       );
@@ -1554,27 +1597,22 @@ class _MessagesPageState extends State<MessagesPage> {
 
       if (!contractSnapshot.exists) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('❌ Contract not found')),
+          const SnackBar(content: Text('❌ you already rejected his contract')),
         );
         return;
       }
 
-      await contractDocRef.update({
-        'status': 'rejected',
-        'Adminacceptance': false,
-      });
-
-      final currentChatId =
-          contractSnapshot.data()?['chatId'] ?? 'defaultChatId';
+      await contractDocRef.delete();
+      print('Contract with ID $docId has been deleted.');
 
       await FirebaseFirestore.instance
           .collection('chats')
-          .doc(currentChatId)
+          .doc(_currentChatId)
           .collection('messages')
           .add({
         'senderId': user.uid,
         'senderEmail': user.email,
-        'text': "The offer has been rejected.",
+        'text': "❌ The offer has been rejected.",
         'timestamp': FieldValue.serverTimestamp(),
         'type': 'system',
       });
